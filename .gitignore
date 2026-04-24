@@ -6,7 +6,10 @@
 # Firebase - Protege qualquer JSON que pareça uma chave de serviço
 *-firebase-adminsdk-*.json
 serviceAccountKey.json
+*.json
+dna_empresaria_6c142_firebase_adminsdk_fbsvc_1a29b09a39.json
 firebase-credentials.json
+dna_empresaria_6c142_firebase_adminsdk_fbsvc_1a29b09a39.json
 
 # NestJS/TypeScript
 /dist
