@@ -1,0 +1,34 @@
+import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import { HumanDesignService } from './human-design.service';
+import { CreateHumanDesignDto } from './dto/create-human-design.dto';
+import { UpdateHumanDesignDto } from './dto/update-human-design.dto';
+
+@Controller('human-design')
+export class HumanDesignController {
+  constructor(private readonly humanDesignService: HumanDesignService) {}
+
+  @Post()
+  create(@Body() createHumanDesignDto: CreateHumanDesignDto) {
+    return this.humanDesignService.create(createHumanDesignDto);
+  }
+
+  @Get()
+  findAll() {
+    return this.humanDesignService.findAll();
+  }
+
+  @Get(':id')
+  findOne(@Param('id') id: string) {
+    return this.humanDesignService.findOne(+id);
+  }
+
+  @Patch(':id')
+  update(@Param('id') id: string, @Body() updateHumanDesignDto: UpdateHumanDesignDto) {
+    return this.humanDesignService.update(+id, updateHumanDesignDto);
+  }
+
+  @Delete(':id')
+  remove(@Param('id') id: string) {
+    return this.humanDesignService.remove(+id);
+  }
+}
