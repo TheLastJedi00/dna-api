@@ -1,11 +1,20 @@
 import { Injectable } from '@nestjs/common';
 import { CreateHumanDesignDto } from './dto/create-human-design.dto';
 import { UpdateHumanDesignDto } from './dto/update-human-design.dto';
+import { HumanDesignRepository } from './human-design.repository';
+import { HumanDesign } from './entities/human-design.model';
 
 @Injectable()
 export class HumanDesignService {
-  create(createHumanDesignDto: CreateHumanDesignDto) {
-    return 'This action adds a new humanDesign';
+  constructor(private readonly repository: HumanDesignRepository){}
+
+  create(dto: CreateHumanDesignDto) {
+    try {
+      const obj = new HumanDesign(dto)
+      this.repository.create(obj)
+    } catch {
+      throw Error;
+    }
   }
 
   findAll() {
