@@ -1,4 +1,4 @@
-import { firestore } from 'src/firebase/firebase.module';
+import { firestore } from '../firebase/firebase.module';
 import { HumanDesign } from './entities/human-design.model';
 import { instanceToPlain } from 'class-transformer';
 import { Injectable } from '@nestjs/common';
