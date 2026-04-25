@@ -8,8 +8,8 @@ export class HumanDesignController {
   constructor(private readonly humanDesignService: HumanDesignService) {}
 
   @Post()
-  create(@Body() createHumanDesignDto: CreateHumanDesignDto) {
-    return this.humanDesignService.create(createHumanDesignDto);
+  async create(@Body() createHumanDesignDto: CreateHumanDesignDto) {
+    return await this.humanDesignService.create(createHumanDesignDto);
   }
 
   @Get()

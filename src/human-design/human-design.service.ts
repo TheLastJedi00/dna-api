@@ -8,10 +8,10 @@ import { HumanDesign } from './entities/human-design.model';
 export class HumanDesignService {
   constructor(private readonly repository: HumanDesignRepository){}
 
-  create(dto: CreateHumanDesignDto) {
+  async create(dto: CreateHumanDesignDto) {
     try {
       const obj = new HumanDesign(dto)
-      this.repository.create(obj)
+      await this.repository.create(obj)
     } catch {
       throw Error;
     }
