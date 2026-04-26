@@ -4,9 +4,10 @@ import { UsersModule } from './users/users.module';
 import { FirebaseModule } from './firebase/firebase.module';
 import { SupplyModule } from './supply/supply.module';
 import { PromptsModule } from './prompts/prompts.module';
+import { AuthModule } from './auth/auth.module';
 
 @Module({
-  imports: [HumanDesignModule, UsersModule, FirebaseModule, SupplyModule, PromptsModule],
+  imports: [HumanDesignModule, UsersModule, FirebaseModule, SupplyModule, PromptsModule, AuthModule],
   controllers: [],
   providers: [],
 })

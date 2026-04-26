@@ -3,17 +3,22 @@ import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { UsersRepository } from './users.repository';
 import { User } from './entities/user.entity';
+import { AuthService } from 'src/auth/auth.service';
 
 @Injectable()
 export class UsersService {
-  constructor(private readonly repository: UsersRepository) {}
+  constructor(
+    private readonly repository: UsersRepository,
+    private readonly auth: AuthService,
+  ) {}
 
   async create(createUserDto: CreateUserDto) {
     try {
-      const object = new User(createUserDto);
+      const user = await this.auth.create(createUserDto.login)
+      const object = new User(createUserDto, user.id);
       await this.repository.create(object);
-    } catch(e) {
-      throw new Error("[Service Error]: "+e);
+    } catch (e) {
+      throw new Error('[Service Error]: ' + e);
     }
   }
 
@@ -23,8 +28,8 @@ export class UsersService {
 
   async findOne(id: string) {
     const user = await this.repository.findById(id);
-    if(!user){
-      throw new NotFoundException(`User with ID ${id} not found.`)
+    if (!user) {
+      throw new NotFoundException(`User with ID ${id} not found.`);
     }
     return user.response();
   }

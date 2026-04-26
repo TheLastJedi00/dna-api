@@ -1,28 +1,23 @@
-import { randomUUID } from 'crypto';
 import { CreateUserDto } from '../dto/create-user.dto';
 import { ResponseUserDto } from '../dto/response-user.dto';
 import { plainToInstance } from 'class-transformer';
 
 export class User {
-  id: string = randomUUID();
+  id!: string;
   fullName!: string;
-  login!: UserLogin;
   birthDate!: string;
   birthTime!: string;
   birthPlace!: string;
 
-  constructor(partial: Partial<CreateUserDto>) {
-    if (partial) {
-      Object.assign(this, partial);
-    }
+  constructor(dto: CreateUserDto, id: string) {
+    this.id = id;
+    this.fullName = dto.fullName;
+    this.birthDate = dto.birthDate;
+    this.birthTime = dto.birthTime;
+    this.birthPlace = dto.birthPlace;
   }
 
   response(){
     return plainToInstance(ResponseUserDto, this)
   }
-}
-
-export interface UserLogin {
-  email: string;
-  password: string;
 }
