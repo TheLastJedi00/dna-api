@@ -11,8 +11,8 @@ export class SupplyController {
       await this.service.request(content);
   }
 
-  @Post('aurico/:id')
-  async createAuricoSupplyById(@Param('id') id:string){
+  @Post('aurico/:userId')
+  async createAuricoSupplyByUserId(@Param('userId') id:string){
     return await this.service.createAuricoSupplyById(id);
   }
 }

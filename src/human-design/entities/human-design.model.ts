@@ -26,4 +26,14 @@ export class HumanDesign {
   toPlainObject() {
     return JSON.parse(JSON.stringify(this));
   }
+
+  toTipoAuricoPrompt(){
+    return `
+      Tipo Áurico: ${this.tipo_aurico}\n
+      Aura: ${this.aura}\n
+      Energia: ${this.energia}\n
+      Palavra: ${this.palavra_chave}\n
+      Tema do Não Ser: ${this.tema_do_nao_ser}
+    `
+  }
 }

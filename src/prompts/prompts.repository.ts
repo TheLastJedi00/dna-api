@@ -1,6 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import * as admin from 'firebase-admin';
 import { firestore } from '../firebase/firebase.module';
+import { plainToInstance } from 'class-transformer';
+import { Prompt } from './entities/prompt.entity';
 
 @Injectable()
 export class PromptsRepository {

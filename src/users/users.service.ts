@@ -14,8 +14,8 @@ export class UsersService {
 
   async create(createUserDto: CreateUserDto) {
     try {
-      const user = await this.auth.create(createUserDto.login)
-      const object = new User(createUserDto, user.id);
+      const userAuth = await this.auth.create(createUserDto.login)
+      const object = new User(createUserDto, userAuth.id);
       await this.repository.create(object);
     } catch (e) {
       throw new Error('[Service Error]: ' + e);
@@ -29,9 +29,9 @@ export class UsersService {
   async findOne(id: string) {
     const user = await this.repository.findById(id);
     if (!user) {
-      throw new NotFoundException(`User with ID ${id} not found.`);
+      throw new NotFoundException(`User with ID ${id} not found in users collection.`);
     }
-    return user.response();
+    return user;
   }
 
   update(id: number, updateUserDto: UpdateUserDto) {

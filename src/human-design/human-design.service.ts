@@ -24,7 +24,7 @@ export class HumanDesignService {
   async findOne(id: string) {
     const data = await this.repository.findById(id);
     if (!data) {
-      throw new NotFoundException(`Doc with ID ${id} not found.`);
+      throw new NotFoundException(`Doc with ID ${id} not found in human-design collection.`);
     }
     return data;
   }
@@ -32,7 +32,7 @@ export class HumanDesignService {
   async findOneByUser(userId: string) {
     const data = await this.repository.findByUserId(userId);
     if (!data) {
-      throw new NotFoundException(`Doc with User ID ${userId} not found.`);
+      throw new NotFoundException(`Doc with User ID ${userId} not found in human-design collection.`);
     }
     return data;
   }

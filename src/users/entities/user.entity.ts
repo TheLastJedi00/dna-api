@@ -1,6 +1,4 @@
 import { CreateUserDto } from '../dto/create-user.dto';
-import { ResponseUserDto } from '../dto/response-user.dto';
-import { plainToInstance } from 'class-transformer';
 
 export class User {
   id!: string;
@@ -9,7 +7,14 @@ export class User {
   birthTime!: string;
   birthPlace!: string;
 
-  constructor(dto: CreateUserDto, id: string) {
+  constructor(data: Partial<User>, id: string) {
+    this.id = id
+    if(data){
+      Object.assign(User, data)
+    }
+  }
+
+  createDtoToEntity(dto: CreateUserDto, id: string){
     this.id = id;
     this.fullName = dto.fullName;
     this.birthDate = dto.birthDate;
@@ -17,7 +22,12 @@ export class User {
     this.birthPlace = dto.birthPlace;
   }
 
-  response(){
-    return plainToInstance(ResponseUserDto, this)
+  toUserDataPrompt(){
+    return `
+      Nome: ${this.fullName}\n
+      Dia nascimento: ${this.birthDate} ${this.birthTime}\n
+      Local nascimento: ${this.birthPlace}
+    `
   }
+
 }

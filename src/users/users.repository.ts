@@ -26,6 +26,6 @@ export class UsersRepository {
       return null
     }
     const data = snap.data()
-    return plainToInstance(User, data)
+    return plainToInstance(User, {id: id, ...data})
   }
 }
