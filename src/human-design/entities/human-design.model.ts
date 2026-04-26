@@ -1,6 +1,7 @@
 import { randomUUID } from 'crypto';
 
 export class HumanDesign {
+  userId!: string;
   id: string = randomUUID();
   tipo_aurico!: string;
   aura!: string;

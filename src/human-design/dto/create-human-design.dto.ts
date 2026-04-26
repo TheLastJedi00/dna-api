@@ -48,6 +48,8 @@ export class CruzEncarnacaoDto {
 
 export class CreateHumanDesignDto {
   @IsString()
+  userId!: string;
+  @IsString()
   tipo_aurico!: string;
   @IsString()
   aura!: string;

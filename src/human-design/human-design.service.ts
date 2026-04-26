@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { CreateHumanDesignDto } from './dto/create-human-design.dto';
 import { UpdateHumanDesignDto } from './dto/update-human-design.dto';
 import { HumanDesignRepository } from './human-design.repository';
@@ -6,12 +6,12 @@ import { HumanDesign } from './entities/human-design.model';
 
 @Injectable()
 export class HumanDesignService {
-  constructor(private readonly repository: HumanDesignRepository){}
+  constructor(private readonly repository: HumanDesignRepository) {}
 
   async create(dto: CreateHumanDesignDto) {
     try {
-      const obj = new HumanDesign(dto)
-      await this.repository.create(obj)
+      const obj = new HumanDesign(dto);
+      await this.repository.create(obj);
     } catch {
       throw Error;
     }
@@ -21,8 +21,20 @@ export class HumanDesignService {
     return `This action returns all humanDesign`;
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} humanDesign`;
+  async findOne(id: string) {
+    const data = await this.repository.findById(id);
+    if (!data) {
+      throw new NotFoundException(`Doc with ID ${id} not found.`);
+    }
+    return data;
+  }
+
+  async findOneByUser(userId: string) {
+    const data = await this.repository.findByUserId(userId);
+    if (!data) {
+      throw new NotFoundException(`Doc with User ID ${userId} not found.`);
+    }
+    return data;
   }
 
   update(id: number, updateHumanDesignDto: UpdateHumanDesignDto) {
