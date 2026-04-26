@@ -21,16 +21,12 @@ export class HumanDesignRepository {
   }
 
   async findById(id: string) {
-    try {
       const snap = await this.db.doc(id).get();
       if (!snap.exists) {
         return null;
       }
       const data = snap.data();
       return plainToInstance(HumanDesign, data);
-    } catch {
-      throw new Error();
-    }
   }
 
   async findByUserId(userId: string) {
