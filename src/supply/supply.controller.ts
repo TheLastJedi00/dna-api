@@ -1,10 +1,10 @@
 import { Body, Controller, Param, Post } from '@nestjs/common';
-import { GeminiService } from './gemini.service';
-import { RequestDto } from './request.dto';
+import { SupplyService } from './supply.service';
+import { RequestDto } from './dtos/request.dto';
 
-@Controller('gemini')
-export class GeminiController {
-  constructor(private readonly service: GeminiService) {}
+@Controller('supply')
+export class SupplyController {
+  constructor(private readonly service: SupplyService) {}
   
   @Post()
   async requestGemini(@Body() content: RequestDto) {
