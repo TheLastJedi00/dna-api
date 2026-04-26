@@ -1,16 +1,18 @@
-import { Body, Controller, Post } from '@nestjs/common';
+import { Body, Controller, Param, Post } from '@nestjs/common';
 import { GeminiService } from './gemini.service';
 import { RequestDto } from './request.dto';
 
 @Controller('gemini')
 export class GeminiController {
   constructor(private readonly service: GeminiService) {}
+  
   @Post()
   async requestGemini(@Body() content: RequestDto) {
-    try {
       await this.service.request(content);
-    } catch (e) {
-      throw new Error(`[Controller] ${e}`);
-    }
+  }
+
+  @Post('aurico/:id')
+  async createAuricoSupplyById(@Param('id') id:string){
+    return await this.service.createAuricoSupplyById(id);
   }
 }

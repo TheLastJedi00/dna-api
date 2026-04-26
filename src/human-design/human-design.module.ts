@@ -6,5 +6,6 @@ import { HumanDesignRepository } from './human-design.repository';
 @Module({
   controllers: [HumanDesignController],
   providers: [HumanDesignService, HumanDesignRepository],
+  exports:  [HumanDesignService]
 })
 export class HumanDesignModule {}

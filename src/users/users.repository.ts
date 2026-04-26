@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { firestore } from '../firebase/firebase.module';
 import { User } from './entities/user.entity';
-import { instanceToPlain } from 'class-transformer';
+import { instanceToPlain, plainToInstance } from 'class-transformer';
 import * as admin from 'firebase-admin';
 
 @Injectable()
@@ -18,5 +18,14 @@ export class UsersRepository {
     } catch(e) {
       throw new Error("[Repository Error]: "+e);
     }
+  }
+
+  async findById(id:string){
+    const snap = await this.db.doc(id).get()
+    if(!snap){
+      return null
+    }
+    const data = snap.data()
+    return plainToInstance(User, data)
   }
 }

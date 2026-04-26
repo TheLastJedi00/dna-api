@@ -1,5 +1,7 @@
 import { randomUUID } from 'crypto';
 import { CreateUserDto } from '../dto/create-user.dto';
+import { ResponseUserDto } from '../dto/response-user.dto';
+import { plainToInstance } from 'class-transformer';
 
 export class User {
   id: string = randomUUID();
@@ -13,6 +15,10 @@ export class User {
     if (partial) {
       Object.assign(this, partial);
     }
+  }
+
+  response(){
+    return plainToInstance(ResponseUserDto, this)
   }
 }
 
