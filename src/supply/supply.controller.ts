@@ -17,6 +17,14 @@ export class SupplyController {
     @Param('pillar') pillar: string,
     @Param('module') module: string,
   ) {
-    return await this.service.createModuleById(id, pillar, module);
+    return await this.service.createModuleByUserIdAndPillar(id, pillar, module);
+  }
+
+  @Post('/:pillar/:userId')
+  async createFullPillarByUserId(
+    @Param('userId') id: string,
+    @Param('pillar') pillar: string,
+  ) {
+    return await this.service.createFullPillarByUserId(id, pillar);
   }
 }

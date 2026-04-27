@@ -1,3 +1,5 @@
+import { HttpException, HttpStatus } from '@nestjs/common';
+
 export const validHumanDesignModules = [
   'tipo-aurico',
   'autoridade',
@@ -12,6 +14,7 @@ export const validHumanDesignModules = [
   'portao-desenho-sol',
   'portao-desenho-terra',
   'portao-desenho-lua',
+  'encarnacao',
 ];
 
 export type HumanDesignModule =
@@ -27,7 +30,8 @@ export type HumanDesignModule =
   | 'portao-personalidade-lua'
   | 'portao-desenho-sol'
   | 'portao-desenho-terra'
-  | 'portao-desenho-lua';
+  | 'portao-desenho-lua'
+  | 'encarnacao';
 
 export class Topic {
   title!: string;
@@ -56,8 +60,8 @@ export class Supply {
 
   validateHumanDesignModule(module: string) {
     if (!validHumanDesignModules.includes(module)) {
-      throw new Error(
-        `"${module}" is not a valid Human Design Module.\nValids Human Design Module: ${validHumanDesignModules.forEach((m) => m)} `,
+      throw new HttpException(
+        `"${module}" is not a valid Human Design Module.\nValids Human Design Module: ${validHumanDesignModules.forEach((m) => m)} `, HttpStatus.CONFLICT
       );
     }
     return module as HumanDesignModule;

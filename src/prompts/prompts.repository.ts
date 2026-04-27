@@ -11,13 +11,13 @@ export class PromptsRepository {
     this.db = firestore.collection('prompts');
   }
   async findPromptByPillar(pillar: string) {
-    const snap = await this.db.where('pillar', '==', pillar).limit(1).get();
+    const snap = await this.db.where('pillar', '==', pillar).get();
     if (!snap) {
       return null;
     }
-    const doc = snap.docs[0].data();
-    const prompt = plainToInstance(Prompt, doc)
-    return prompt;
+    const docs = snap.docs;
+    const prompts = docs.map(d => plainToInstance(Prompt, d.data()))
+    return prompts;
   }
 
   async findByPillarAndModule(pillar: string, module: string) {
