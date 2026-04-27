@@ -14,7 +14,7 @@ export class GeminiProvider {
 
   topicArraySchema = z.array(this.topicSchema)
 
-  async main(content: string) {
+  async generateTopics(content: string) {
     try {
       const response = await this.ai.models.generateContent({
         model: 'gemini-3-flash-preview',

@@ -11,20 +11,20 @@ export class Topic {
 
 export class Supply {
     id!: string;
-    dnaModule!: string
-    moduleTitle!: string
+    pillar!: string
+    module!: string
     userId!: string
     topics!: Topic[]
 
-    constructor(dnaModule: string, moduleTitle: string, userId: string, topics: Topic[]){
-        this.dnaModule = dnaModule;
-        this.moduleTitle = moduleTitle;
+    constructor(pillar: string, module: string, userId: string, topics: Topic[]){
+        this.pillar = pillar;
+        this.module = module;
         this.userId = userId,
         this.topics = topics
         this.id = this.generateId()
     }
 
     generateId(){
-        return `${this.userId}-${this.dnaModule}-${this.moduleTitle}`
+        return `${this.userId}-${this.pillar}-${this.module}`
     }
 }

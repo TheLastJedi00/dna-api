@@ -1,6 +1,6 @@
 export class Prompt {
-    category!: string;
-    part!: number
+    pillar!: string;
+    module!: string
     prompt!: string
 
     constructor(partial: Partial<{}>){

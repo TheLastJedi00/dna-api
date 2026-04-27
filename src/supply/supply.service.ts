@@ -18,16 +18,17 @@ export class SupplyService {
   ) {}
 
   async request(content: RequestDto) {
-    await this.gemini.main(content.content);
+    await this.gemini.generateTopics(content.content);
   }
 
-  async createAuricoSupplyById(id: string) {
+  async createModuleById(id: string, pillar: string, module: string) {
     const user = await this.users.findOne(id);
     const dhData = await this.humanDesign.findOneByUser(id);
-    const mainPrompt = await this.prompts.findByCategory('main')
-    const prompt = await this.prompts.findByCategory('human-design')
-    const topics = await this.gemini.main(`${mainPrompt.prompt}\n${prompt.prompt}\nDados Maestra: ${user.toUserDataPrompt()}\nDados Desenho Humano:${dhData.toTipoAuricoPrompt()}`);
-    const supply = new Supply("human-design", "tipo-aurico", user.id, topics)
+    const mainPrompt = await this.prompts.findByPillar('main')
+    if(module.includes('portoes')){}
+    const prompt = await this.prompts.findByPillarAndModule(pillar, module)
+    const topics = await this.gemini.generateTopics(`${mainPrompt.prompt}\n${prompt.prompt}\n${dhData.toPrompt()}\n${user.toUserDataPrompt()}}`);
+    const supply = new Supply(pillar, module, user.id, topics)
     return await this.supplies.create(supply)
   }
 }

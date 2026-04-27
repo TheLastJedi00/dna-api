@@ -10,12 +10,27 @@ export class PromptsRepository {
   constructor() {
     this.db = firestore.collection('prompts');
   }
-  async findPromptByCategory(category: string) {
-    const snap = await this.db.where('category', '==', category).limit(1).get();
+  async findPromptByPillar(pillar: string) {
+    const snap = await this.db.where('pillar', '==', pillar).limit(1).get();
     if (!snap) {
       return null;
     }
     const doc = snap.docs[0].data();
-    return doc;
+    const prompt = plainToInstance(Prompt, doc)
+    return prompt;
+  }
+
+  async findByPillarAndModule(pillar: string, module: string) {
+    const snap = await this.db.where("pillar","==",pillar).where("module","==",module).limit(1).get();
+    if(!snap){
+      return null
+    }
+    const doc = snap.docs[0].data();
+    const prompt = plainToInstance(Prompt, doc)
+    return prompt;
+  }
+
+  async createPrompt(prompt: Prompt){
+    return this.db.doc().set(prompt)
   }
 }

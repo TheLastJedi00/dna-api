@@ -5,14 +5,18 @@ import { RequestDto } from './dtos/request.dto';
 @Controller('supply')
 export class SupplyController {
   constructor(private readonly service: SupplyService) {}
-  
+
   @Post()
   async requestGemini(@Body() content: RequestDto) {
-      await this.service.request(content);
+    await this.service.request(content);
   }
 
-  @Post('aurico/:userId')
-  async createAuricoSupplyByUserId(@Param('userId') id:string){
-    return await this.service.createAuricoSupplyById(id);
+  @Post('/:pillar/:module/:userId')
+  async createModuleByUserIdAnPillarAndModule(
+    @Param('userId') id: string,
+    @Param('pillar') pillar: string,
+    @Param('module') module: string,
+  ) {
+    return await this.service.createModuleById(id, pillar, module);
   }
 }
