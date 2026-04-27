@@ -25,9 +25,8 @@ export class SupplyService {
     const user = await this.users.findOne(id);
     const dhData = await this.humanDesign.findOneByUser(id);
     const mainPrompt = await this.prompts.findByPillar('main')
-    if(module.includes('portoes')){}
     const prompt = await this.prompts.findByPillarAndModule(pillar, module)
-    const topics = await this.gemini.generateTopics(`${mainPrompt.prompt}\n${prompt.prompt}\n${dhData.toPrompt()}\n${user.toUserDataPrompt()}}`);
+    const topics = await this.gemini.generateTopics(`${mainPrompt.prompt}\n${prompt.prompt}\n${dhData.toPrompt()}\n${user.toUserDataPrompt()}`);
     const supply = new Supply(pillar, module, user.id, topics)
     return await this.supplies.create(supply)
   }

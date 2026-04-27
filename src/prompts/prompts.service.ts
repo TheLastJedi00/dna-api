@@ -16,7 +16,7 @@ export class PromptsService {
 
   async findByPillarAndModule(pillar: string, module: string) {
     let prompt: Prompt | null;
-    if (module.includes('portoes')) {
+    if (module.includes('portao')) {
       prompt = await this.repository.findByPillarAndModule(pillar, 'portoes');
     } else {
       prompt = await this.repository.findByPillarAndModule(pillar, module);
