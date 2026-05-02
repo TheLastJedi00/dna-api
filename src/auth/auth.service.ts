@@ -4,12 +4,15 @@ import { AuthRepository } from './auth.repository';
 import { Auth } from './entities/auth.entity';
 import { BcryptService } from './bcrypt.service';
 import { UserLoginDto } from 'src/users/dto/create-user.dto';
+import { JwtService } from '@nestjs/jwt';
+import { JwtPayload } from './entities/payload.entity';
 
 @Injectable()
 export class AuthService {
   constructor(
     private readonly repository: AuthRepository,
-    private readonly bcyptService: BcryptService
+    private readonly bcyptService: BcryptService,
+    private readonly jwtService: JwtService
   ) {}
 
   async create(data) {
@@ -23,7 +26,7 @@ export class AuthService {
     return `This action returns all auth`;
   }
 
-  async findByCredentials(credentials: UserLoginDto) {
+  async loginByCredentials(credentials: UserLoginDto) {
     const userData = await this.repository.findByEmail(credentials.email);
     if(!userData){
       throw new UnauthorizedException("Email não cadastrado.");
@@ -32,7 +35,8 @@ export class AuthService {
     if(!validPassword){
       throw new UnauthorizedException("Senha inválida.");
     }
-    return 'dados validados'
+    const payload = new JwtPayload({...userData})
+    return {access_token: await this.jwtService.signAsync(payload.toPlain())}
   }
 
   update(id: number, updateAuthDto: UpdateAuthDto) {

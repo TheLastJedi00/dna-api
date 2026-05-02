@@ -5,9 +5,18 @@ import { FirebaseModule } from './firebase/firebase.module';
 import { SupplyModule } from './supply/supply.module';
 import { PromptsModule } from './prompts/prompts.module';
 import { AuthModule } from './auth/auth.module';
+import { ConfigModule } from '@nestjs/config';
 
 @Module({
-  imports: [HumanDesignModule, UsersModule, FirebaseModule, SupplyModule, PromptsModule, AuthModule],
+  imports: [
+    ConfigModule.forRoot({ isGlobal: true }),
+    HumanDesignModule,
+    UsersModule,
+    FirebaseModule,
+    SupplyModule,
+    PromptsModule,
+    AuthModule,
+  ],
   controllers: [],
   providers: [],
 })

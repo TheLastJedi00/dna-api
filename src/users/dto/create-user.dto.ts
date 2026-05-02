@@ -5,6 +5,8 @@ export class UserLoginDto {
     email!: string;
     @IsString()
     password!: string
+    @IsString()
+    role!: string[]
 }
 
 export class CreateUserDto {

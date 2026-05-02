@@ -9,7 +9,7 @@ export class AuthController {
 
   @Post()
   login(@Body() credentials: UserLoginDto){
-    return this.authService.findByCredentials(credentials)
+    return this.authService.loginByCredentials(credentials)
   }
 
 }
