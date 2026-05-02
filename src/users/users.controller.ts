@@ -8,7 +8,7 @@ import { Role } from '../decorators/role.decorator';
 import { Roles } from '../enums/role.enum';
 
 @Controller('users')
-@UseGuards(AuthGuard)
+@UseGuards(AuthGuard, RoleGuard)
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
@@ -18,23 +18,15 @@ export class UsersController {
   }
 
   @Get()
-  @Role(Roles.ADMIN, Roles.MANAGER)
+  @Role(Roles.ADMIN)
   findAll() {
     return this.usersService.findAll();
   }
 
   @Get(':id')
+  @Role(Roles.ADMIN)
   findOne(@Param('id') id: string) {
     return this.usersService.findOne(id);
   }
 
-  @Patch(':id')
-  update(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto) {
-    return this.usersService.update(+id, updateUserDto);
-  }
-
-  @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.usersService.remove(+id);
-  }
 }

@@ -16,11 +16,6 @@ export class AuthGuard implements CanActivate {
     const token = headerAuth?.startsWith('Bearer')
       ? headerAuth.split(' ')[1]
       : headerAuth;
-    // 🚨 HOLOFOTE AQUI: Vamos ver EXATAMENTE o que está chegando
-    console.log('--- INÍCIO DO DEBUG ---');
-    console.log('CABECALHO ORIGINAL:', headerAuth);
-    console.log('TOKEN EXTRAÍDO:', token);
-    console.log('--- FIM DO DEBUG ---');
     if (!token) {
       throw new UnauthorizedException('Acesso não autorizado.');
     }

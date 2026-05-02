@@ -6,8 +6,8 @@ import { Prompt } from './entities/prompt.entity';
 export class PromptsController {
     constructor(private readonly service: PromptsService){}
 
-    @Post()
-    createPrompt(@Body() prompt: Prompt){
-        this.service.createPrompt(prompt)
-    }
+    // @Post()
+    // createPrompt(@Body() prompt: Prompt){
+    //     this.service.createPrompt(prompt)
+    // }
 }

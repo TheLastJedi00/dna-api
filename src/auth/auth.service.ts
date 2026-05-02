@@ -3,7 +3,7 @@ import { UpdateAuthDto } from './dto/update-auth.dto';
 import { AuthRepository } from './auth.repository';
 import { Auth } from './entities/auth.entity';
 import { BcryptService } from './bcrypt.service';
-import { UserLoginDto } from 'src/users/dto/create-user.dto';
+import { UserLoginDto } from '../users/dto/create-user.dto';
 import { JwtService } from '@nestjs/jwt';
 import { JwtPayload } from './entities/payload.entity';
 
