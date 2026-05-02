@@ -13,7 +13,6 @@ export class AuthGuard implements CanActivate {
     if(!token){
       return false
     }
-    const credential = await this.authService.findOne("1234")
     return true
   }
 }

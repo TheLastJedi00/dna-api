@@ -3,11 +3,11 @@ import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
 import { AuthRepository } from './auth.repository';
 import { AuthGuard } from './guard/auth.guard';
-import { BcryptPipe } from './pipes/bcrypt.pipe';
+import { BcryptService } from './bcrypt.service';
 
 @Module({
   controllers: [AuthController],
-  providers: [AuthService, AuthRepository, AuthGuard, BcryptPipe],
+  providers: [AuthService, AuthRepository, AuthGuard, BcryptService],
   exports: [AuthService]
 })
 export class AuthModule {}

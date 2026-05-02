@@ -7,6 +7,7 @@ import { Auth } from "./entities/auth.entity";
 @Injectable()
 export class AuthRepository {
   private readonly db: admin.firestore.CollectionReference;
+
   constructor() {
     this.db = firestore.collection('auth');
   }
@@ -17,12 +18,13 @@ export class AuthRepository {
       return {id: user.id}
   }
 
-  async findById(id:string){
-    const snap = await this.db.doc(id).get()
-    if(!snap){
+  async findByEmail(email: string) {
+    const snap = await this.db.where('email', '==', email).limit(1).get();
+    if(snap.empty){
       return null
     }
-    const data = snap.data()
-    return plainToInstance(Auth, data)
+    const data = snap.docs[0].data()
+    const auth = plainToInstance(Auth, data)
+    return auth
   }
 }
