@@ -2,15 +2,18 @@ import { Injectable } from '@nestjs/common';
 import { UpdateAuthDto } from './dto/update-auth.dto';
 import { AuthRepository } from './auth.repository';
 import { Auth } from './entities/auth.entity';
+import { BcryptPipe } from './pipes/bcrypt.pipe';
 
 @Injectable()
 export class AuthService {
-  constructor(private readonly repository: AuthRepository){}
+  constructor(
+    private readonly repository: AuthRepository,
+  ) {}
 
   create(data) {
     const auth = new Auth(data);
-    const created = this.repository.create(auth)
-    return created
+    const created = this.repository.create(auth);
+    return created;
   }
 
   findAll() {
