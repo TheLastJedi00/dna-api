@@ -1,7 +1,7 @@
 export class JwtPayload {
     id!: string
     email!: string
-    role!: string[]
+    roles!: string[]
 
     constructor(partial: Partial<JwtPayload>){
         Object.assign(this, partial)

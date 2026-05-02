@@ -6,7 +6,7 @@ export class UserLoginDto {
     @IsString()
     password!: string
     @IsString()
-    role!: string[]
+    roles!: string[]
 }
 
 export class CreateUserDto {

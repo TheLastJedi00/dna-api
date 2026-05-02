@@ -2,7 +2,10 @@ import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards } from '@n
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
-import { AuthGuard } from 'src/auth/guard/auth.guard';
+import { AuthGuard } from 'src/auth/guards/auth.guard';
+import { RoleGuard } from 'src/auth/guards/role.guard';
+import { Role } from '../decorators/role.decorator';
+import { Roles } from '../enums/role.enum';
 
 @Controller('users')
 @UseGuards(AuthGuard)
@@ -15,6 +18,7 @@ export class UsersController {
   }
 
   @Get()
+  @Role(Roles.ADMIN, Roles.MANAGER)
   findAll() {
     return this.usersService.findAll();
   }
