@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { UsersRepository } from './users.repository';
@@ -32,6 +32,13 @@ export class UsersService {
       throw new NotFoundException(`User with ID ${id} not found in users collection.`);
     }
     return user;
+  }
+
+  async findMe(idFromToken: string, idFromUrl: string){
+    if(idFromToken !== idFromUrl){
+      throw new UnauthorizedException("Impossível consultar dados de outro usuário.");
+    }
+    return await this.repository.findById(idFromUrl);
   }
 
   update(id: number, updateUserDto: UpdateUserDto) {
