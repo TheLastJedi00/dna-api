@@ -6,12 +6,18 @@ export class User {
   birthDate!: string;
   birthTime!: string;
   birthPlace!: string;
+  isActive!: boolean;
 
   constructor(data: Partial<User>, id: string) {
     this.id = id
+    this.isActive = true;
     if(data){
       Object.assign(User, data)
     }
+  }
+
+  disable(){
+    this.isActive = false
   }
 
   createDtoToEntity(dto: CreateUserDto, id: string){

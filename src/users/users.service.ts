@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { UsersRepository } from './users.repository';
@@ -14,12 +18,25 @@ export class UsersService {
 
   async create(createUserDto: CreateUserDto) {
     try {
-      const userAuth = await this.auth.create(createUserDto.login)
+      const userAuth = await this.auth.create(createUserDto.login);
       const object = new User(createUserDto, userAuth.id);
       await this.repository.create(object);
     } catch (e) {
       throw new Error('[Service Error]: ' + e);
     }
+  }
+
+  async findAllActiveUsers(page: string, orderBy: string, direction: string) {
+    const validDirections = ['asc', 'desc'];
+    if(!validDirections.includes(direction)){
+      throw new NotFoundException('Valor de ordem não existe, precisa ser "asc" ou "desc."')
+    }
+    const users = this.repository.findAllActiveUsers(
+      Number(page),
+      20,
+      orderBy,
+      direction
+    );
   }
 
   findAll() {
@@ -29,14 +46,18 @@ export class UsersService {
   async findOne(id: string) {
     const user = await this.repository.findById(id);
     if (!user) {
-      throw new NotFoundException(`User with ID ${id} not found in users collection.`);
+      throw new NotFoundException(
+        `User with ID ${id} not found in users collection.`,
+      );
     }
     return user;
   }
 
-  async findMe(idFromToken: string, idFromUrl: string){
-    if(idFromToken !== idFromUrl){
-      throw new UnauthorizedException("Impossível consultar dados de outro usuário.");
+  async findMe(idFromToken: string, idFromUrl: string) {
+    if (idFromToken !== idFromUrl) {
+      throw new UnauthorizedException(
+        'Impossível consultar dados de outro usuário.',
+      );
     }
     return await this.repository.findById(idFromUrl);
   }

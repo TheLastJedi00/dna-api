@@ -1,7 +1,17 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, UnauthorizedException } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  UseGuards,
+  UnauthorizedException,
+  Query,
+} from '@nestjs/common';
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
-import { UpdateUserDto } from './dto/update-user.dto';
 import { AuthGuard } from 'src/auth/guards/auth.guard';
 import { RoleGuard } from 'src/auth/guards/role.guard';
 import { Role } from '../decorators/role.decorator';
@@ -24,6 +34,16 @@ export class UsersController {
     return this.usersService.findAll();
   }
 
+  @Get('active/:orderBy/:direction')
+  @Role(Roles.ADMIN, Roles.MANAGER)
+  async findAllActiveUsers(
+    @Query('page') page: string = '1',
+    @Param('orderBy') orderBy: string = 'fullName',
+    @Param('direction') direction: string = 'asc'
+  ) {
+    return await this.usersService.findAllActiveUsers(page, orderBy, direction);
+  }
+
   @Get(':id')
   @Role(Roles.ADMIN)
   findOne(@Param('id') id: string) {
@@ -31,8 +51,10 @@ export class UsersController {
   }
 
   @Get('me/:id')
-  async findMe(@Ownership('id') idFromToken: string, @Param('id') idFromUrl: string){
-    return await this.usersService.findMe(idFromToken, idFromUrl)
+  async findMe(
+    @Ownership('id') idFromToken: string,
+    @Param('id') idFromUrl: string,
+  ) {
+    return await this.usersService.findMe(idFromToken, idFromUrl);
   }
-
 }
