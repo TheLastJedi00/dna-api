@@ -36,10 +36,20 @@ export class UsersRepository {
     orderBy: string,
     direction: string,
   ) {
-    const snap = await this.db
+    const snap = await this.db.where('isActive', '==', true)
       .orderBy(orderBy, direction as OrderByDirection)
       .offset((page-1)*limit)
       .limit(limit)
       .get();
+
+      if(snap.empty){
+        return null
+      }
+
+      const data = snap.docs.map(s => {
+        return plainToInstance(User, s)
+      })
+
+      return data
   }
 }
