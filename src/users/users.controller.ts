@@ -37,11 +37,10 @@ export class UsersController {
   @Get('active/:orderBy/:direction')
   @Role(Roles.ADMIN, Roles.MANAGER)
   async findAllActiveUsers(
-    @Query('page') page: string = '1',
     @Param('orderBy') orderBy: string = 'fullName',
     @Param('direction') direction: string = 'asc'
   ) {
-    return await this.usersService.findAllActiveUsers(page, orderBy, direction);
+    return await this.usersService.findAllActiveUsers(orderBy, direction);
   }
 
   @Get(':id')

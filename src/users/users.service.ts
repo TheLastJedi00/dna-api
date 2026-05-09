@@ -26,21 +26,15 @@ export class UsersService {
     }
   }
 
-  async findAllActiveUsers(page: string, orderBy: string, direction: string) {
+  async findAllActiveUsers(orderBy: string, direction: string) {
     const validDirections = ['asc', 'desc'];
     if(!validDirections.includes(direction)){
       throw new NotFoundException('Valor de ordem não existe, precisa ser "asc" ou "desc."')
     }
     const users = await this.repository.findAllActiveUsers(
-      Number(page),
-      20,
       orderBy,
       direction
     );
-
-    if(!users){
-      throw new NotFoundException('Nenhum Usuário Ativo Encontrado')
-    }
 
     return users
   }

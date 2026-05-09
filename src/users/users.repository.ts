@@ -31,25 +31,20 @@ export class UsersRepository {
   }
 
   async findAllActiveUsers(
-    page: number,
-    limit: number,
     orderBy: string,
     direction: string,
   ) {
-    const snap = await this.db.where('isActive', '==', true)
-      .orderBy(orderBy, direction as OrderByDirection)
-      .offset((page-1)*limit)
-      .limit(limit)
-      .get();
+    const snap = await this.db.where('isActive', '==', true).get();
 
       if(snap.empty){
-        return null
+        return []
       }
 
-      const data = snap.docs.map(s => {
-        return plainToInstance(User, s)
+      const users = snap.docs.map(s => {
+        const data = s.data()
+        return plainToInstance(User, data)
       })
 
-      return data
+      return users
   }
 }
