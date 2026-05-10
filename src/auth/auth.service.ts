@@ -1,4 +1,4 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { ConflictException, Injectable, UnauthorizedException } from '@nestjs/common';
 import { UpdateAuthDto } from './dto/update-auth.dto';
 import { AuthRepository } from './auth.repository';
 import { Auth } from './entities/auth.entity';
@@ -6,20 +6,25 @@ import { BcryptService } from './bcrypt.service';
 import { UserLoginDto } from '../users/dto/create-user.dto';
 import { JwtService } from '@nestjs/jwt';
 import { JwtPayload } from './entities/payload.entity';
+import { Roles } from 'src/enums/role.enum';
 
 @Injectable()
 export class AuthService {
   constructor(
     private readonly repository: AuthRepository,
     private readonly bcyptService: BcryptService,
-    private readonly jwtService: JwtService
+    private readonly jwtService: JwtService,
   ) {}
 
-  async create(data) {
-    const hashPass = await this.bcyptService.hash(data.password)
-    const auth = new Auth({...data, password: hashPass});
-    const created = await this.repository.create(auth);
-    return created;
+  async create(data, roles: string[]) {
+      const compareEmail = await this.repository.findByEmail(data.email);
+      if(compareEmail){
+        throw new ConflictException('Email já cadastrado.')
+      }
+      const hashPass = await this.bcyptService.hash(data.password);
+      const auth = new Auth({ ...data, password: hashPass, roles: roles });
+      const created = await this.repository.create(auth);
+      return created;
   }
 
   findAll() {
@@ -28,15 +33,22 @@ export class AuthService {
 
   async loginByCredentials(credentials: UserLoginDto) {
     const userData = await this.repository.findByEmail(credentials.email);
-    if(!userData){
-      throw new UnauthorizedException("Email não cadastrado.");
+    if (!userData) {
+      throw new UnauthorizedException('Email não cadastrado.');
     }
-    const validPassword = await this.bcyptService.compare(credentials.password, userData.password);
-    if(!validPassword){
-      throw new UnauthorizedException("Senha inválida.");
+    const validPassword = await this.bcyptService.compare(
+      credentials.password,
+      userData.password,
+    );
+    if (!validPassword) {
+      throw new UnauthorizedException('Senha inválida.');
     }
-    const payload = new JwtPayload({id: userData.id, email: userData.email, roles: userData.roles})
-    return {access_token: await this.jwtService.signAsync(payload.toPlain())}
+    const payload = new JwtPayload({
+      id: userData.id,
+      email: userData.email,
+      roles: userData.roles,
+    });
+    return { access_token: await this.jwtService.signAsync(payload.toPlain()) };
   }
 
   update(id: number, updateAuthDto: UpdateAuthDto) {

@@ -1,4 +1,5 @@
 import {
+  ConflictException,
   Injectable,
   NotFoundException,
   UnauthorizedException,
@@ -16,27 +17,22 @@ export class UsersService {
     private readonly auth: AuthService,
   ) {}
 
-  async create(createUserDto: CreateUserDto) {
-    try {
-      const userAuth = await this.auth.create(createUserDto.login);
-      const object = new User(createUserDto, userAuth.id);
+  async createMaestra(data: CreateUserDto) {
+      const userAuth = await this.auth.create(data.login, ['USER']);
+      const object = new User(data, userAuth.id);
       await this.repository.create(object);
-    } catch (e) {
-      throw new Error('[Service Error]: ' + e);
-    }
   }
 
   async findAllActiveUsers(orderBy: string, direction: string) {
     const validDirections = ['asc', 'desc'];
-    if(!validDirections.includes(direction)){
-      throw new NotFoundException('Valor de ordem não existe, precisa ser "asc" ou "desc."')
+    if (!validDirections.includes(direction)) {
+      throw new NotFoundException(
+        'Valor de ordem não existe, precisa ser "asc" ou "desc."',
+      );
     }
-    const users = await this.repository.findAllActiveUsers(
-      orderBy,
-      direction
-    );
+    const users = await this.repository.findAllActiveUsers(orderBy, direction);
 
-    return users
+    return users;
   }
 
   findAll() {

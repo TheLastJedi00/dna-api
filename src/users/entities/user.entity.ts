@@ -8,12 +8,13 @@ export class User {
   birthPlace!: string;
   isActive!: boolean;
 
-  constructor(data: Partial<User>, id: string) {
+  constructor(data: CreateUserDto, id: string) {
     this.id = id
+    this.fullName = data.fullName;
+    this.birthDate = data.birthDate;
+    this.birthTime = data.birthTime;
+    this.birthPlace = data.birthPlace;
     this.isActive = true;
-    if(data){
-      Object.assign(User, data)
-    }
   }
 
   disable(){

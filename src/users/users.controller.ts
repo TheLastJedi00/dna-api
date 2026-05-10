@@ -23,9 +23,16 @@ import { Ownership } from 'src/decorators/ownership.decorator';
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
-  @Post()
-  create(@Body() createUserDto: CreateUserDto) {
-    return this.usersService.create(createUserDto);
+  // @Post()
+  // @Role(Roles.ADMIN, Roles.MANAGER)
+  // create(@Body() createUserDto: CreateUserDto) {
+  //   return this.usersService.create(createUserDto);
+  // }
+
+  @Post('maestra')
+  @Role(Roles.ADMIN)
+  createMaestra(@Body() data: CreateUserDto) {
+    return this.usersService.createMaestra(data);
   }
 
   @Get()
@@ -38,7 +45,7 @@ export class UsersController {
   @Role(Roles.ADMIN, Roles.MANAGER)
   async findAllActiveUsers(
     @Param('orderBy') orderBy: string = 'fullName',
-    @Param('direction') direction: string = 'asc'
+    @Param('direction') direction: string = 'asc',
   ) {
     return await this.usersService.findAllActiveUsers(orderBy, direction);
   }
