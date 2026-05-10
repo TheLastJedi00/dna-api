@@ -4,6 +4,7 @@ import { User } from './entities/user.entity';
 import { instanceToPlain, plainToInstance } from 'class-transformer';
 import * as admin from 'firebase-admin';
 import { OrderByDirection } from 'firebase-admin/firestore';
+import { CreateUserDto } from './dto/create-user.dto';
 
 @Injectable()
 export class UsersRepository {
@@ -27,7 +28,7 @@ export class UsersRepository {
       return null;
     }
     const data = snap.data();
-    return plainToInstance(User, { id: id, ...data });
+    return new User(data as CreateUserDto, id);
   }
 
   async findAllActiveUsers(
@@ -42,7 +43,7 @@ export class UsersRepository {
 
       const users = snap.docs.map(s => {
         const data = s.data()
-        return plainToInstance(User, data)
+        return new User(data as CreateUserDto)
       })
 
       return users

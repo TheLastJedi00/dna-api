@@ -11,6 +11,8 @@ export class UserLoginDto {
 
 export class CreateUserDto {
   @IsString()
+  id?: string;
+  @IsString()
   fullName!: string;
   @ValidateNested({each: true})
   login?: UserLoginDto;

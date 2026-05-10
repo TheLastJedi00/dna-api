@@ -8,8 +8,8 @@ export class User {
   birthPlace!: string;
   isActive!: boolean;
 
-  constructor(data: CreateUserDto, id: string) {
-    this.id = id
+  constructor(data: CreateUserDto, id?: string) {
+    this.id = id? id : data.id!
     this.fullName = data.fullName;
     this.birthDate = data.birthDate;
     this.birthTime = data.birthTime;
@@ -17,11 +17,11 @@ export class User {
     this.isActive = true;
   }
 
-  disable(){
-    this.isActive = false
+  disable() {
+    this.isActive = false;
   }
 
-  createDtoToEntity(dto: CreateUserDto, id: string){
+  createDtoToEntity(dto: CreateUserDto, id: string) {
     this.id = id;
     this.fullName = dto.fullName;
     this.birthDate = dto.birthDate;
@@ -29,13 +29,12 @@ export class User {
     this.birthPlace = dto.birthPlace;
   }
 
-  toUserDataPrompt(){
+  toUserDataPrompt() {
     return `
     Daddos Maestra:\n
       Nome: ${this.fullName}\n
       Dia nascimento: ${this.birthDate} ${this.birthTime}\n
       Local nascimento: ${this.birthPlace}
-    `
+    `;
   }
-
 }
