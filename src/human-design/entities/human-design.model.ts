@@ -41,7 +41,7 @@ export class HumanDesign {
   tema_do_nao_ser!: string;
   autoridade!: string;
   perfil!: string;
-  centros_energeticos!: any;
+  centros_energeticos!: CentrosEnergeticos;
   canais!: Canal[];
   ativacoes!: Ativacoes;
   encarnacao!: Encarnacao;

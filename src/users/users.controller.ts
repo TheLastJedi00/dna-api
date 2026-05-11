@@ -51,7 +51,7 @@ export class UsersController {
   }
 
   @Get(':id')
-  @Role(Roles.ADMIN)
+  @Role(Roles.ADMIN, Roles.MANAGER)
   findOne(@Param('id') id: string) {
     return this.usersService.findOne(id);
   }
