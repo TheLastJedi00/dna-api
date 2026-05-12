@@ -6,6 +6,7 @@ import { SupplyModule } from './supply/supply.module';
 import { PromptsModule } from './prompts/prompts.module';
 import { AuthModule } from './auth/auth.module';
 import { ConfigModule } from '@nestjs/config';
+import { DnaStatusModule } from './dna-status/dna-status.module';
 
 @Module({
   imports: [
@@ -16,6 +17,7 @@ import { ConfigModule } from '@nestjs/config';
     SupplyModule,
     PromptsModule,
     AuthModule,
+    DnaStatusModule,
   ],
   controllers: [],
   providers: [],

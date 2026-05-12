@@ -1,6 +1,6 @@
 import { randomUUID } from 'crypto';
 
-export class Canal {
+export class  Canal {
   id!: string;
   nome!: string;
 }

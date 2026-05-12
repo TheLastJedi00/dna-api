@@ -34,7 +34,7 @@ export class HumanDesignController {
   }
 
   @Get(':id')
-  @Role(Roles.ADMIN)
+  @Role(Roles.ADMIN, Roles.MANAGER)
   async findOne(@Param('id') id: string) {
     return await this.humanDesignService.findOne(id);
   }
