@@ -2,12 +2,12 @@ import { IsArray, IsNumber, IsString, ValidateNested } from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class CentrosEnergeticosDto {
-  @IsString({ each: true })
-  definidos!: string[];
-  @IsString({ each: true })
-  indefinidos!: string[];
-  @IsString({ each: true })
-  abertos!: string[];
+  @IsString()
+  definidos!: string;
+  @IsString()
+  indefinidos!: string;
+  @IsString()
+  abertos!: string;
 }
 
 export class CanalDto {

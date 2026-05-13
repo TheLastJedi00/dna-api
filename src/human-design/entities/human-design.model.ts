@@ -6,9 +6,9 @@ export class  Canal {
 }
 
 export class CentrosEnergeticos {
-  definidos!: string[];
-  indefinidos!: string[];
-  abertos!: string[];
+  definidos!: string;
+  indefinidos!: string;
+  abertos!: string;
 }
 
 export class PontosAtivacao {
@@ -70,9 +70,9 @@ export class HumanDesign {
   Tema do Não Ser: ${this.tema_do_nao_ser || ''}
   Autoridade: ${this.autoridade || ''}
   Perfil: ${this.perfil || ''}
-  Centros Energéticos (Definidos): ${this.centros_energeticos?.definidos?.join(', ') || 'Nenhum'}
-  Centros Energéticos (Indefinidos): ${this.centros_energeticos?.indefinidos?.join(', ') || 'Nenhum'}
-  Centros Energéticos (Abertos): ${this.centros_energeticos?.abertos?.join(', ') || 'Nenhum'}
+  Centros Energéticos (Definidos): ${this.centros_energeticos?.definidos || 'Nenhum'}
+  Centros Energéticos (Indefinidos): ${this.centros_energeticos?.indefinidos || 'Nenhum'}
+  Centros Energéticos (Abertos): ${this.centros_energeticos?.abertos || 'Nenhum'}
   Canais: ${this.canais?.map((canal) => canal.nome).join(', ') || 'Nenhum'}
   Ativações Personalidade (Sol/Terra/Lua): ${this.ativacoes?.personalidade?.sol || ''} / ${this.ativacoes?.personalidade?.terra || ''} / ${this.ativacoes?.personalidade?.lua || ''}
   Ativações Desenho (Sol/Terra/Lua): ${this.ativacoes?.desenho?.sol || ''} / ${this.ativacoes?.desenho?.terra || ''} / ${this.ativacoes?.desenho?.lua || ''}
