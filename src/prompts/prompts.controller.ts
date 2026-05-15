@@ -1,13 +1,15 @@
-import { Body, Controller, Post } from '@nestjs/common';
+import { Body, Controller, HttpCode, HttpStatus, Post } from '@nestjs/common';
 import { PromptsService } from './prompts.service';
 import { Prompt } from './entities/prompt.entity';
 
 @Controller('prompts')
 export class PromptsController {
-    constructor(private readonly service: PromptsService){}
+  constructor(private readonly service: PromptsService) {}
 
-    // @Post()
-    // createPrompt(@Body() prompt: Prompt){
-    //     this.service.createPrompt(prompt)
-    // }
+  @Post('batch')
+  @HttpCode(HttpStatus.CREATED)
+  async createManyPrompts(@Body() body: { prompts: Prompt[] }) {
+    await this.service.createManyPrompts(body.prompts);
+    return { message: `${body.prompts.length} prompt(s) criado(s) com sucesso.` };
+  }
 }

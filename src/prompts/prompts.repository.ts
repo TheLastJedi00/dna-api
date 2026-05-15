@@ -33,4 +33,13 @@ export class PromptsRepository {
   async createPrompt(prompt: Prompt){
     return this.db.doc().set(prompt)
   }
+
+  async createManyPrompts(prompts: Prompt[]) {
+    const batch = firestore.batch();
+    for (const prompt of prompts) {
+      const ref = this.db.doc();
+      batch.set(ref, { ...prompt });
+    }
+    return batch.commit();
+  }
 }

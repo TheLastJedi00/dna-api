@@ -32,4 +32,8 @@ export class PromptsService {
   async createPrompt(prompt: Prompt) {
     return this.repository.createPrompt(prompt);
   }
+
+  async createManyPrompts(prompts: Prompt[]) {
+    return this.repository.createManyPrompts(prompts);
+  }
 }
