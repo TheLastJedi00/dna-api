@@ -45,7 +45,7 @@ export class UsersRepository {
     orderBy: string,
     direction: string,
   ) {
-    const snap = await this.db.where('isActive', '==', true).where('roles','==',["USER"]).get();
+    const snap = await this.db.where('isActive', '==', true).where('roles', 'array-contains', 'USER').get();
 
       if(snap.empty){
         return []

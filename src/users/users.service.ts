@@ -17,8 +17,9 @@ export class UsersService {
   ) {}
 
   async createMaestra(data: CreateUserDto) {
-      const userAuth = await this.auth.create(data.login, ['USER']);
-      const object = new User(data, userAuth.id);
+      const roles = ['USER'];
+      const userAuth = await this.auth.create(data.login, roles);
+      const object = new User(data, userAuth.id, roles);
       await this.repository.create(object);
   }
 

@@ -7,14 +7,16 @@ export class User {
   birthTime!: string;
   birthPlace!: string;
   isActive!: boolean;
+  roles!: string[];
 
-  constructor(data: CreateUserDto, id?: string) {
+  constructor(data: CreateUserDto, id?: string, roles?: string[]) {
     this.id = id? id : data.id!
     this.fullName = data.fullName;
     this.birthDate = data.birthDate;
     this.birthTime = data.birthTime;
     this.birthPlace = data.birthPlace;
     this.isActive = true;
+    this.roles = roles ?? (data as any).roles ?? [];
   }
 
   disable() {
