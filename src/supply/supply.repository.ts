@@ -16,4 +16,12 @@ export class SupplyRepository {
         await this.db.doc(supply.id).set(plain);
         return supply;
     }
+
+    async checkSupplyByUserId(userId: string, pillar: string){
+        const snap = await this.db.where('userId', '==', userId).where('pillar', '==', pillar).limit(1).get();
+        if(snap.empty){
+            return false
+        }
+        return true
+    }
 }

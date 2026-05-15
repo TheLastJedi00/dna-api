@@ -1,4 +1,4 @@
-import { Body, Controller, Param, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
 import { SupplyService } from './supply.service';
 import { RequestDto } from './dtos/request.dto';
 import { AuthGuard } from '../auth/guards/auth.guard';
@@ -17,7 +17,7 @@ export class SupplyController {
   }
 
   @Post('/:pillar/:module/:userId')
-  @Role(Roles.ADMIN)
+  @Role(Roles.ADMIN, Roles.MANAGER)
   async createModuleByUserIdAnPillarAndModule(
     @Param('userId') id: string,
     @Param('pillar') pillar: string,
@@ -33,5 +33,14 @@ export class SupplyController {
     @Param('pillar') pillar: string,
   ) {
     return await this.service.createFullPillarByUserId(id, pillar);
+  }
+
+  @Get('check/:userId/:pillar')
+  @Role(Roles.ADMIN, Roles.MANAGER)
+  async isSupplyCreatedForThisUser(
+    @Param('userId') userId: string,
+    @Param('pillar') pillar: string,
+  ) {
+    return await this.service.checkSupplyByUserId(userId, pillar);
   }
 }

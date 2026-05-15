@@ -40,4 +40,8 @@ export class SupplyService {
     }
     return createdModules;
   }
+
+  async checkSupplyByUserId(userId: string, pillar: string){
+    return await this.supplies.checkSupplyByUserId(userId, pillar);
+  }
 }

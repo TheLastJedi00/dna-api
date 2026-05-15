@@ -28,7 +28,17 @@ export class UsersRepository {
       return null;
     }
     const data = snap.data();
-    return new User(data as CreateUserDto, id);
+    if(data === undefined){
+      return null;
+    }
+    const obj = {
+      id: id,
+      fullName: data.fullName,
+      birthDate: data.birthDate,
+      birthTime: data.birthTime,
+      birthPlace: data.birthPlace
+    }
+    return new User(obj as CreateUserDto, id);
   }
 
   async findAllActiveUsers(
