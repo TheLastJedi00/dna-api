@@ -5,6 +5,7 @@ import { AuthGuard } from '../auth/guards/auth.guard';
 import { RoleGuard } from '../auth/guards/role.guard';
 import { Role } from '../decorators/role.decorator';
 import { Roles } from '../enums/role.enum';
+import type { HumanDesignModuleType } from './entities/supply.entity';
 
 @Controller('supply')
 @UseGuards(AuthGuard, RoleGuard)
@@ -12,6 +13,7 @@ export class SupplyController {
   constructor(private readonly service: SupplyService) {}
 
   @Post()
+  @Role(Roles.MANAGER)
   async requestGemini(@Body() content: RequestDto) {
     await this.service.request(content);
   }
@@ -33,6 +35,14 @@ export class SupplyController {
     @Param('pillar') pillar: string,
   ) {
     return await this.service.createFullPillarByUserId(id, pillar);
+  }
+
+  @Get('human-design/:module/:userId')
+  async getHumanDesignModuleByUserId(
+    @Param('userId') userId: string,
+    @Param('module') module: HumanDesignModuleType,
+  ) {
+    return await this.service.findHumanDesignModuleByUserId(userId, module);
   }
 
   @Get('check/:userId/:pillar')

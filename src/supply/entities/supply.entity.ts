@@ -17,7 +17,7 @@ export const validHumanDesignModules = [
   'encarnacao',
 ];
 
-export type HumanDesignModule =
+export type HumanDesignModuleType =
   | 'tipo-aurico'
   | 'autoridade'
   | 'perfil'
@@ -47,24 +47,26 @@ export class Topic {
 export class Supply {
   id!: string;
   pillar!: string;
-  module!: HumanDesignModule;
+  module!: HumanDesignModuleType;
   userId!: string;
   topics!: Topic[];
 
   constructor(pillar: string, module: string, userId: string, topics: Topic[]) {
     this.pillar = pillar;
     this.module = this.validateHumanDesignModule(module);
-    ((this.userId = userId), (this.topics = topics));
+    this.userId = userId; 
+    this.topics = topics;
     this.id = this.generateId();
   }
 
   validateHumanDesignModule(module: string) {
     if (!validHumanDesignModules.includes(module)) {
       throw new HttpException(
-        `"${module}" is not a valid Human Design Module.\nValids Human Design Module: ${validHumanDesignModules.forEach((m) => m)} `, HttpStatus.CONFLICT
+        `"${module}" is not a valid Human Design Module.\nValids Human Design Module: ${validHumanDesignModules.forEach((m) => m)} `,
+        HttpStatus.CONFLICT,
       );
     }
-    return module as HumanDesignModule;
+    return module as HumanDesignModuleType;
   }
 
   generateId() {
