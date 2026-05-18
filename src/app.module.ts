@@ -7,6 +7,7 @@ import { PromptsModule } from './prompts/prompts.module';
 import { AuthModule } from './auth/auth.module';
 import { ConfigModule } from '@nestjs/config';
 import { DnaStatusModule } from './dna-status/dna-status.module';
+import { NumerologyModule } from './numerology/numerology.module';
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { DnaStatusModule } from './dna-status/dna-status.module';
     PromptsModule,
     AuthModule,
     DnaStatusModule,
+    NumerologyModule,
   ],
   controllers: [],
   providers: [],
