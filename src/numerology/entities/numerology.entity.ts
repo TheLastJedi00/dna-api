@@ -76,4 +76,3 @@ export class Numerology {
   Números Favoráveis: ${this.extras?.numeros_favoraveis?.join(', ') || 'Nenhum'}`;
   }
 }
-
