@@ -37,6 +37,11 @@ export class HumanDesignService {
     return data;
   }
 
+  async checkExistence(userId: string){
+    const search = await this.repository.findByUserId(userId);
+    return !!search
+  }
+
   update(id: number, updateHumanDesignDto: UpdateHumanDesignDto) {
     return `This action updates a #${id} humanDesign`;
   }

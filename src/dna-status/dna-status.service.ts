@@ -13,13 +13,10 @@ export class DnaStatusService {
   async getStatusByUser(userId: string): Promise<DnaStatus> {
     let status: DnaStatus;
 
-    try {
-      const hd = await this.humanDesignService.findOneByUser(userId);
-      const num = await this.numerologyService.findOneByUser(userId);
-      status = new DnaStatus(!!hd, !!num, false)
-    } catch {
-      status = new DnaStatus(false, false, false)
-    }
+    const hd = await this.humanDesignService.checkExistence(userId);
+    const num = await this.numerologyService.checkExistence(userId);
+    status = new DnaStatus(hd, num, false);
+
     return status;
   }
 }

@@ -12,8 +12,8 @@ export class NumerologyService {
     try {
       const obj = new Numerology(dto);
       await this.repository.create(obj);
-    } catch {
-      throw Error;
+    } catch(e) {
+      throw new Error(`[Service Error] ${e}`);
     }
   }
 
@@ -35,6 +35,11 @@ export class NumerologyService {
       throw new NotFoundException(`Doc with User ID ${userId} not found in numerology collection.`);
     }
     return data;
+  }
+
+  async checkExistence(userId: string){
+    const search = await this.repository.findByUserId(userId);
+    return !!search
   }
 
   async update(id: string, dto: UpdateNumerologyDto) {
