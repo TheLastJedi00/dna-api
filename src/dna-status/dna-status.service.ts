@@ -1,22 +1,25 @@
 import { Injectable } from '@nestjs/common';
 import { HumanDesignService } from '../human-design/human-design.service';
 import { DnaStatus } from './entities/dna-status.entity';
+import { NumerologyService } from 'src/numerology/numerology.service';
 
 @Injectable()
 export class DnaStatusService {
-  constructor(private readonly humanDesignService: HumanDesignService) {}
+  constructor(
+    private readonly humanDesignService: HumanDesignService,
+    private readonly numerologyService: NumerologyService,
+  ) {}
 
   async getStatusByUser(userId: string): Promise<DnaStatus> {
-    const status = new DnaStatus();
+    let status: DnaStatus;
 
     try {
       const hd = await this.humanDesignService.findOneByUser(userId);
-      status.human_design = !!hd;
+      const num = await this.numerologyService.findOneByUser(userId);
+      status = new DnaStatus(!!hd, !!num, false)
     } catch {
-      status.human_design = false;
+      status = new DnaStatus(false, false, false)
     }
-
-    // numerology e astrology: sempre false até que os módulos sejam criados
     return status;
   }
 }
