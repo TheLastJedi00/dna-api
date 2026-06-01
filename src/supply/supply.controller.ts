@@ -29,12 +29,12 @@ export class SupplyController {
   }
 
   @Post('/:pillar/:userId')
-  @Role(Roles.ADMIN)
+  @Role(Roles.ADMIN, Roles.MANAGER)
   async createFullPillarByUserId(
     @Param('userId') id: string,
     @Param('pillar') pillar: string,
   ) {
-    return await this.service.createFullPillarByUserId(id, pillar);
+    return await this.service.createHumanDesignPillarByUserId(id, pillar);
   }
 
   @Get('human-design/:module/:userId')

@@ -6,10 +6,11 @@ import { UsersModule } from '../users/users.module';
 import { HumanDesignModule } from '../human-design/human-design.module';
 import { PromptsModule } from '../prompts/prompts.module';
 import { SupplyRepository } from './supply.repository';
+import { NumerologyModule } from 'src/numerology/numerology.module';
 
 @Module({
     controllers: [SupplyController],
     providers: [SupplyService, GeminiProvider, SupplyRepository],
-    imports: [UsersModule, HumanDesignModule, PromptsModule]
+    imports: [UsersModule, HumanDesignModule, PromptsModule, NumerologyModule]
 })
 export class SupplyModule {}
