@@ -45,6 +45,14 @@ export class SupplyController {
     return await this.service.findHumanDesignModuleByUserId(userId, module);
   }
 
+  @Get('numerology/:module/:userId')
+  async getNumerologyModuleByUserId(
+    @Param('userId') userId: string,
+    @Param('module') module: string,
+  ) {
+    return await this.service.findNumerologyModuleByUserId(userId, module);
+  }
+
   @Get('check/:userId/:pillar')
   @Role(Roles.ADMIN, Roles.MANAGER)
   async isSupplyCreatedForThisUser(

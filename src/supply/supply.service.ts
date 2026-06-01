@@ -95,4 +95,16 @@ export class SupplyService {
     }
     return supply;
   }
+
+  async findNumerologyModuleByUserId(userId: string, module: string) {
+    const supply = await this.supplyRepository.findById(
+      `${userId}-numerology-${module}`,
+    );
+    if (!supply) {
+      throw new NotFoundException(
+        'Nenhum material encontrado com essas informações',
+      );
+    }
+    return supply;
+  }
 }
