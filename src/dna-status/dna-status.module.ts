@@ -4,9 +4,10 @@ import { DnaStatusController } from './dna-status.controller';
 import { HumanDesignModule } from '../human-design/human-design.module';
 import { Numerology } from 'src/numerology/entities/numerology.entity';
 import { NumerologyModule } from 'src/numerology/numerology.module';
+import { AstrologyModule } from 'src/astrology/astrology.module';
 
 @Module({
-  imports: [HumanDesignModule, NumerologyModule],
+  imports: [HumanDesignModule, NumerologyModule, AstrologyModule],
   controllers: [DnaStatusController],
   providers: [DnaStatusService],
 })
