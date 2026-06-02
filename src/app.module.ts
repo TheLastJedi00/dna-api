@@ -8,6 +8,7 @@ import { AuthModule } from './auth/auth.module';
 import { ConfigModule } from '@nestjs/config';
 import { DnaStatusModule } from './dna-status/dna-status.module';
 import { NumerologyModule } from './numerology/numerology.module';
+import { AstrologyModule } from './astrology/astrology.module';
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { NumerologyModule } from './numerology/numerology.module';
     AuthModule,
     DnaStatusModule,
     NumerologyModule,
+    AstrologyModule,
   ],
   controllers: [],
   providers: [],
