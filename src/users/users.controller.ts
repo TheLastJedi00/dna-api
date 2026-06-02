@@ -50,17 +50,18 @@ export class UsersController {
     return await this.usersService.findAllActiveUsers(orderBy, direction);
   }
 
+  @Get('me/:id')
+  async findMe(
+    @Ownership('id') idFromToken: string,
+    @Ownership('role') rolesFromToken: string[],
+    @Param('id') idFromUrl: string,
+  ) {
+    return await this.usersService.findMe(idFromToken, rolesFromToken, idFromUrl);
+  }
+
   @Get(':id')
   @Role(Roles.ADMIN, Roles.MANAGER)
   findOne(@Param('id') id: string) {
     return this.usersService.findOne(id);
-  }
-
-  @Get('me/:id')
-  async findMe(
-    @Ownership('id') idFromToken: string,
-    @Param('id') idFromUrl: string,
-  ) {
-    return await this.usersService.findMe(idFromToken, idFromUrl);
   }
 }

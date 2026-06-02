@@ -8,6 +8,7 @@ import { UpdateUserDto } from './dto/update-user.dto';
 import { UsersRepository } from './users.repository';
 import { User } from './entities/user.entity';
 import { AuthService } from 'src/auth/auth.service';
+import { Roles } from 'src/enums/role.enum';
 
 @Injectable()
 export class UsersService {
@@ -49,13 +50,23 @@ export class UsersService {
     return user;
   }
 
-  async findMe(idFromToken: string, idFromUrl: string) {
-    if (idFromToken !== idFromUrl) {
+  async findMe(idFromToken: string, rolesFromToken: string[], idFromUrl: string) {
+    if (
+      idFromToken !== idFromUrl &&
+      !rolesFromToken.includes(Roles.MANAGER) &&
+      !rolesFromToken.includes(Roles.ADMIN)
+    ) {
       throw new UnauthorizedException(
         'Impossível consultar dados de outro usuário.',
       );
     }
-    return await this.repository.findById(idFromUrl);
+    const user = await this.repository.findById(idFromUrl);
+    if (!user) {
+      throw new NotFoundException(
+        `Usuário com ID ${idFromUrl} não encontrado.`,
+      );
+    }
+    return user;
   }
 
   update(id: number, updateUserDto: UpdateUserDto) {
