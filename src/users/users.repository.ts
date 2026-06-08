@@ -58,4 +58,13 @@ export class UsersRepository {
 
       return users
   }
+
+  async update(id: string, user: User){
+    const snap = this.db.doc(id);
+    if(!snap){
+      return null
+    }
+    snap.set(instanceToPlain(user));
+    return user;
+  }
 }

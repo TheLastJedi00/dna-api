@@ -43,6 +43,20 @@ export const validNumerologyModules = [
   'conclusao',
 ];
 
+export const validAstrologyModules = [
+  'sol',
+  'ascendente',
+  'lua',
+  'meio-ceu',
+  'casa-dinheiro',
+  'casa-comunicacao',
+  'elemento-fogo',
+  'elemento-terra',
+  'elemento-ar',
+  'elemento-agua',
+  'conclusao',
+];
+
 export type NumerologyModuleType =
   | 'motivacao'
   | 'impressao'
@@ -84,6 +98,19 @@ export type HumanDesignModuleType =
   | 'portao-desenho-lua'
   | 'encarnacao';
 
+export type AstrologyModuleType =
+  | 'sol'
+  | 'ascendente'
+  | 'lua'
+  | 'meio-ceu'
+  | 'casa-dinheiro'
+  | 'casa-comunicacao'
+  | 'elemento-fogo'
+  | 'elemento-terra'
+  | 'elemento-ar'
+  | 'elemento-agua'
+  | 'conclusao';
+
 export class Topic {
   title!: string;
   items!: string[];
@@ -98,31 +125,33 @@ export class Topic {
 export class Supply {
   id!: string;
   pillar!: string;
-  module!: HumanDesignModuleType | NumerologyModuleType;
+  module!: HumanDesignModuleType | NumerologyModuleType | AstrologyModuleType;
   userId!: string;
   topics!: Topic[];
 
   constructor(pillar: string, module: string, userId: string, topics: Topic[]) {
     this.pillar = pillar;
-    this.module = this.validateModuleByPillar(pillar, module);
+    this.module = this.validateModuleByPillar(pillar, module)!;
     this.userId = userId;
     this.topics = topics;
     this.id = this.generateId();
   }
 
   validateModuleByPillar(pillar: string, module) {
-    if (pillar === 'human-design') {
-      return this.validateHumanDesignModule(module);
+    switch(pillar){
+      case 'human-design': 
+        return this.validateHumanDesignModule(module);
+      case 'numerology': 
+        return this.validateNumerologyModule(module);
+      case 'astrology': 
+        return this.validateAsrtrologyModule(module);
     }
-    // if (pillar === 'numerology') {
-      return this.validateNumerologyModule(module);
-
   }
 
   validateHumanDesignModule(module: string) {
     if (!validHumanDesignModules.includes(module)) {
       throw new HttpException(
-        `"${module}" is not a valid Human Design Module.\nValids Human Design Module: ${validHumanDesignModules.forEach((m) => m)} `,
+        `"${module}" is not a valid Human Design Module.`,
         HttpStatus.CONFLICT,
       );
     }
@@ -132,11 +161,21 @@ export class Supply {
   validateNumerologyModule(module: string) {
     if (!validNumerologyModules.includes(module)) {
       throw new HttpException(
-        `"${module}" is not a valid Numerology Module.\nValids Numerology Module: ${validNumerologyModules.forEach((m) => m)} `,
+        `"${module}" is not a valid Numerology Module.`,
         HttpStatus.CONFLICT,
       );
     }
     return module as NumerologyModuleType;
+  }
+
+  validateAsrtrologyModule(module: string) {
+    if (!validAstrologyModules.includes(module)) {
+      throw new HttpException(
+        `"${module}" is not a valid Astrology Module.`,
+        HttpStatus.CONFLICT,
+      );
+    }
+    return module as AstrologyModuleType;
   }
 
   generateId() {

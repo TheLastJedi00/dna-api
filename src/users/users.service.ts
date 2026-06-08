@@ -18,10 +18,10 @@ export class UsersService {
   ) {}
 
   async createMaestra(data: CreateUserDto) {
-      const roles = ['USER'];
-      const userAuth = await this.auth.create(data.login, roles);
-      const object = new User(data, userAuth.id, roles);
-      await this.repository.create(object);
+    const roles = ['USER'];
+    const userAuth = await this.auth.create(data.login, roles);
+    const object = new User(data, userAuth.id, roles);
+    await this.repository.create(object);
   }
 
   async findAllActiveUsers(orderBy: string, direction: string) {
@@ -50,7 +50,11 @@ export class UsersService {
     return user;
   }
 
-  async findMe(idFromToken: string, rolesFromToken: string[], idFromUrl: string) {
+  async findMe(
+    idFromToken: string,
+    rolesFromToken: string[],
+    idFromUrl: string,
+  ) {
     if (
       idFromToken !== idFromUrl &&
       !rolesFromToken.includes(Roles.MANAGER) &&
@@ -73,7 +77,16 @@ export class UsersService {
     return `This action updates a #${id} user`;
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} user`;
+  async disable(id: string) {
+    const user = await this.repository.findById(id);
+    if (!user) {
+      throw new NotFoundException(`Usuário com o ID ${id} não encontrado`);
+    }
+    user.disable();
+    const updated = await this.repository.update(id, user);
+    if (!updated) {
+      throw new NotFoundException(`Usuário com o ID ${id} não encontrado`);
+    }
+    return updated;
   }
 }

@@ -56,12 +56,22 @@ export class UsersController {
     @Ownership('role') rolesFromToken: string[],
     @Param('id') idFromUrl: string,
   ) {
-    return await this.usersService.findMe(idFromToken, rolesFromToken, idFromUrl);
+    return await this.usersService.findMe(
+      idFromToken,
+      rolesFromToken,
+      idFromUrl,
+    );
   }
 
   @Get(':id')
   @Role(Roles.ADMIN, Roles.MANAGER)
   findOne(@Param('id') id: string) {
     return this.usersService.findOne(id);
+  }
+
+  @Delete(':id')
+  @Role(Roles.ADMIN, Roles.MANAGER)
+  async disableUser(@Param('id') userId: string) {
+    return await this.usersService.disable(userId);
   }
 }

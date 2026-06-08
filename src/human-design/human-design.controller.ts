@@ -17,7 +17,7 @@ import { AuthGuard } from '../auth/guards/auth.guard';
 import { RoleGuard } from '../auth/guards/role.guard';
 
 @Controller('human-design')
-@UseGuards(AuthGuard, RoleGuard)
+// @UseGuards(AuthGuard, RoleGuard)
 export class HumanDesignController {
   constructor(private readonly humanDesignService: HumanDesignService) {}
 
