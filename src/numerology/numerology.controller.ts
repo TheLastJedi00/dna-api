@@ -34,7 +34,6 @@ export class NumerologyController {
   }
 
   @Get('user/:userId')
-  @Role(Roles.USER)
   async findOneByUser(@Param('userId') userId: string) {
     return await this.numerologyService.findOneByUser(userId);
   }

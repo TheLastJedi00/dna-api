@@ -7,6 +7,7 @@ import { PromptsService } from 'src/prompts/prompts.service';
 import {
   HumanDesignModuleType,
   Supply,
+  validAstrologyModules,
   validHumanDesignModules,
   validNumerologyModules,
 } from './entities/supply.entity';
@@ -59,11 +60,10 @@ export class SupplyService {
     let createdModules: Supply[] = [];
     let modules;
 
-    if (pillar === 'human-design') {
-      modules = validHumanDesignModules;
-    }
-    if (pillar === 'numerology') {
-      modules = validNumerologyModules;
+    switch(pillar){
+      case 'human-design': modules = validHumanDesignModules;
+      case 'numerology': modules = validNumerologyModules;
+      case 'astrology': modules = validAstrologyModules;
     }
 
     for (const m of modules) {

@@ -17,7 +17,7 @@ import { AuthGuard } from '../auth/guards/auth.guard';
 import { RoleGuard } from '../auth/guards/role.guard';
 
 @Controller('human-design')
-// @UseGuards(AuthGuard, RoleGuard)
+@UseGuards(AuthGuard, RoleGuard)
 export class HumanDesignController {
   constructor(private readonly humanDesignService: HumanDesignService) {}
 
@@ -40,7 +40,6 @@ export class HumanDesignController {
   }
 
   @Get('user/:userId')
-  @Role(Roles.USER)
   async findOneByUser(@Param('userId') userId: string) {
     return await this.humanDesignService.findOneByUser(userId);
   }
