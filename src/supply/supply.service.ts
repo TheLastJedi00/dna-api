@@ -12,7 +12,6 @@ import {
   validNumerologyModules,
 } from './entities/supply.entity';
 import { SupplyRepository } from './supply.repository';
-import { Prompt } from 'src/prompts/entities/prompt.entity';
 import { NumerologyService } from 'src/numerology/numerology.service';
 
 @Injectable()
@@ -42,29 +41,36 @@ export class SupplyService {
       pillar === 'human-design'
         ? await this.humanDesignService.findOneByUser(id)
         : await this.numerologyService.findOneByUser(id);
-    console.log(`DNA: ${!!dnaData}`)
+    console.log(`DNA: ${!!dnaData}`);
     const mainPrompt = await this.prompts.findByPillar('main');
-    console.log(`Main Prompt: ${!!mainPrompt}`)
+    console.log(`Main Prompt: ${!!mainPrompt}`);
     const prompt = await this.prompts.findByPillarAndModule(pillar, module);
-    console.log(`Module Prompt: ${!!prompt}`)
+    console.log(`Module Prompt: ${!!prompt}`);
     const topics = await this.gemini.generateTopics(
       `${mainPrompt[0].prompt}\n${prompt.prompt}\n${dnaData.toPrompt()}\n${user.toUserDataPrompt()}`,
     );
-    console.log(`Created Topic: ${!!topics}`)
+    console.log(`Created Topic: ${!!topics}`);
     const supply = new Supply(pillar, module, user.id, topics);
-    console.log(supply)
+    console.log(supply);
     return await this.supplyRepository.create(supply);
   }
 
-  async createHumanDesignPillarByUserId(userId: string, pillar: string) {
+  async createFullPillarByUserId(userId: string, pillar: string) {
     let createdModules: Supply[] = [];
     let modules;
-
-    switch(pillar){
-      case 'human-design': modules = validHumanDesignModules;
-      case 'numerology': modules = validNumerologyModules;
-      case 'astrology': modules = validAstrologyModules;
+    console.log(pillar)
+    switch (pillar) {
+      case 'human-design':
+        modules = validHumanDesignModules;
+        break;
+      case 'numerology':
+        modules = validNumerologyModules;
+        break;
+      case 'astrology':
+        modules = validAstrologyModules;
+        break;
     }
+    console.log(modules)
 
     for (const m of modules) {
       const module = await this.createModuleByUserIdAndPillar(

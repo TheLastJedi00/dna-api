@@ -34,7 +34,7 @@ export class SupplyController {
     @Param('userId') id: string,
     @Param('pillar') pillar: string,
   ) {
-    return await this.service.createHumanDesignPillarByUserId(id, pillar);
+    return await this.service.createFullPillarByUserId(id, pillar);
   }
 
   @Get('human-design/:module/:userId')
