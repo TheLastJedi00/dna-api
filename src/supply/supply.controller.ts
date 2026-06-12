@@ -59,6 +59,6 @@ export class SupplyController {
     @Param('userId') userId: string,
     @Param('pillar') pillar: string,
   ) {
-    return await this.service.checkSupplyByUserId(userId, pillar);
+    return await this.service.checkSupplyByUserIdAndPillar(userId, pillar);
   }
 }

@@ -25,6 +25,10 @@ export class SupplyService {
     private readonly supplyRepository: SupplyRepository,
   ) {}
 
+  supplyIdGenerator(userId: string, pillar: string, module: string) {
+    return `${userId}-${pillar}-${module}`;
+  }
+
   async request(content: RequestDto) {
     await this.gemini.generateTopics(content.content);
   }
@@ -34,31 +38,30 @@ export class SupplyService {
     pillar: string,
     module: string,
   ) {
-    console.log(`[Service] Buscando por ${module} em ${pillar}`);
+    const existingSupply = await this.supplyRepository.findById(
+      this.supplyIdGenerator(id, pillar, module),
+    );
+    if (existingSupply) {
+      console.log(`Módulo ${module} já existe pra essse usuário.`);
+      return existingSupply;
+    }
     const user = await this.users.findOne(id);
-    console.log(`Maestra: ${user.fullName}`);
     const dnaData =
       pillar === 'human-design'
         ? await this.humanDesignService.findOneByUser(id)
         : await this.numerologyService.findOneByUser(id);
-    console.log(`DNA: ${!!dnaData}`);
     const mainPrompt = await this.prompts.findByPillar('main');
-    console.log(`Main Prompt: ${!!mainPrompt}`);
     const prompt = await this.prompts.findByPillarAndModule(pillar, module);
-    console.log(`Module Prompt: ${!!prompt}`);
     const topics = await this.gemini.generateTopics(
       `${mainPrompt[0].prompt}\n${prompt.prompt}\n${dnaData.toPrompt()}\n${user.toUserDataPrompt()}`,
     );
-    console.log(`Created Topic: ${!!topics}`);
     const supply = new Supply(pillar, module, user.id, topics);
-    console.log(supply);
     return await this.supplyRepository.create(supply);
   }
 
   async createFullPillarByUserId(userId: string, pillar: string) {
     let createdModules: Supply[] = [];
     let modules;
-    console.log(pillar)
     switch (pillar) {
       case 'human-design':
         modules = validHumanDesignModules;
@@ -70,7 +73,6 @@ export class SupplyService {
         modules = validAstrologyModules;
         break;
     }
-    console.log(modules)
 
     for (const m of modules) {
       const module = await this.createModuleByUserIdAndPillar(
@@ -83,8 +85,21 @@ export class SupplyService {
     return createdModules;
   }
 
-  async checkSupplyByUserId(userId: string, pillar: string) {
-    return await this.supplyRepository.checkSupplyByUserId(userId, pillar);
+  async checkSupplyByUserIdAndPillar(userId: string, pillar: string) {
+    const supplies = await this.supplyRepository.findByUserAndPillar(
+      userId,
+      pillar,
+    );
+    if (!supplies) {
+      return false;
+    }
+    const validModulesMap: Record<string, string[]> = {
+      'human-design': validHumanDesignModules,
+      'numerology': validNumerologyModules,
+      'astrology': validAstrologyModules,
+    };
+    const expectedModules = validModulesMap[pillar];
+    return expectedModules.every((e) => supplies.some((s) => s.module === e))
   }
 
   async findHumanDesignModuleByUserId(

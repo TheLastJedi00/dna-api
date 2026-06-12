@@ -53,7 +53,7 @@ export class UsersController {
   @Get('me/:id')
   async findMe(
     @Ownership('id') idFromToken: string,
-    @Ownership('role') rolesFromToken: string[],
+    @Ownership('roles') rolesFromToken: string[],
     @Param('id') idFromUrl: string,
   ) {
     return await this.usersService.findMe(

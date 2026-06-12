@@ -57,8 +57,7 @@ export class UsersService {
   ) {
     if (
       idFromToken !== idFromUrl &&
-      !rolesFromToken.includes(Roles.MANAGER) &&
-      !rolesFromToken.includes(Roles.ADMIN)
+      !rolesFromToken.includes(Roles.ADMIN || Roles.MANAGER)
     ) {
       throw new UnauthorizedException(
         'Impossível consultar dados de outro usuário.',
