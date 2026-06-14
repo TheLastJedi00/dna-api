@@ -144,7 +144,7 @@ export class Supply {
       case 'numerology': 
         return this.validateNumerologyModule(module);
       case 'astrology': 
-        return this.validateAsrtrologyModule(module);
+        return this.validateAstrologyModule(module);
     }
   }
 
@@ -168,7 +168,7 @@ export class Supply {
     return module as NumerologyModuleType;
   }
 
-  validateAsrtrologyModule(module: string) {
+  validateAstrologyModule(module: string) {
     if (!validAstrologyModules.includes(module)) {
       throw new HttpException(
         `"${module}" is not a valid Astrology Module.`,

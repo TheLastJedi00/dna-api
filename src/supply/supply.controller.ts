@@ -53,6 +53,14 @@ export class SupplyController {
     return await this.service.findNumerologyModuleByUserId(userId, module);
   }
 
+  @Get('astrology/:module/:userId')
+  async getAstrologyModuleByUserId(
+    @Param('userId') userId: string,
+    @Param('module') module: string,
+  ) {
+    return await this.service.findAstrologyModuleByUserId(userId, module);
+  }
+
   @Get('check/:userId/:pillar')
   @Role(Roles.ADMIN, Roles.MANAGER)
   async isSupplyCreatedForThisUser(

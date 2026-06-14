@@ -13,6 +13,7 @@ import {
 } from './entities/supply.entity';
 import { SupplyRepository } from './supply.repository';
 import { NumerologyService } from 'src/numerology/numerology.service';
+import { AstrologyService } from 'src/astrology/astrology.service';
 
 @Injectable()
 export class SupplyService {
@@ -23,6 +24,7 @@ export class SupplyService {
     private readonly users: UsersService,
     private readonly prompts: PromptsService,
     private readonly supplyRepository: SupplyRepository,
+    private readonly astrologyService: AstrologyService,
   ) {}
 
   supplyIdGenerator(userId: string, pillar: string, module: string) {
@@ -46,10 +48,14 @@ export class SupplyService {
       return existingSupply;
     }
     const user = await this.users.findOne(id);
-    const dnaData =
-      pillar === 'human-design'
-        ? await this.humanDesignService.findOneByUser(id)
-        : await this.numerologyService.findOneByUser(id);
+    let dnaData;
+    if (pillar === 'human-design') {
+      dnaData = await this.humanDesignService.findOneByUser(id);
+    } else if (pillar === 'numerology') {
+      dnaData = await this.numerologyService.findOneByUser(id);
+    } else if (pillar === 'astrology') {
+      dnaData = await this.astrologyService.findOneByUser(id);
+    }
     const mainPrompt = await this.prompts.findByPillar('main');
     const prompt = await this.prompts.findByPillarAndModule(pillar, module);
     const topics = await this.gemini.generateTopics(
@@ -120,6 +126,18 @@ export class SupplyService {
   async findNumerologyModuleByUserId(userId: string, module: string) {
     const supply = await this.supplyRepository.findById(
       `${userId}-numerology-${module}`,
+    );
+    if (!supply) {
+      throw new NotFoundException(
+        'Nenhum material encontrado com essas informações',
+      );
+    }
+    return supply;
+  }
+
+  async findAstrologyModuleByUserId(userId: string, module: string) {
+    const supply = await this.supplyRepository.findById(
+      `${userId}-astrology-${module}`,
     );
     if (!supply) {
       throw new NotFoundException(
