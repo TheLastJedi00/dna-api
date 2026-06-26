@@ -34,7 +34,6 @@ export class AstrologyController {
   }
 
   @Get('user/:userId')
-  @Role(Roles.ADMIN)
   async findOneByUser(@Param('userId') userId: string) {
     return await this.astrologyService.findOneByUser(userId);
   }
