@@ -3,8 +3,10 @@ import { GeminiProvider } from './gemini/gemini.provider';
 import { RequestDto } from './dtos/request.dto';
 import { UsersService } from 'src/users/users.service';
 import { HumanDesignService } from 'src/human-design/human-design.service';
+import { AstrologyService } from 'src/astrology/astrology.service';
 import { PromptsService } from 'src/prompts/prompts.service';
 import {
+  AstrologyModuleType,
   HumanDesignModuleType,
   Supply,
   validAstrologyModules,
@@ -21,6 +23,7 @@ export class SupplyService {
     private readonly gemini: GeminiProvider,
     private readonly humanDesignService: HumanDesignService,
     private readonly numerologyService: NumerologyService,
+    private readonly astrologyService: AstrologyService,
     private readonly users: UsersService,
     private readonly prompts: PromptsService,
     private readonly supplyRepository: SupplyRepository,
@@ -41,7 +44,9 @@ export class SupplyService {
     const dnaData =
       pillar === 'human-design'
         ? await this.humanDesignService.findOneByUser(id)
-        : await this.numerologyService.findOneByUser(id);
+        : pillar === 'numerology'
+          ? await this.numerologyService.findOneByUser(id)
+          : await this.astrologyService.findOneByUser(id);
     console.log(`DNA: ${!!dnaData}`)
     const mainPrompt = await this.prompts.findByPillar('main');
     console.log(`Main Prompt: ${!!mainPrompt}`)
@@ -99,6 +104,18 @@ export class SupplyService {
   async findNumerologyModuleByUserId(userId: string, module: string) {
     const supply = await this.supplyRepository.findById(
       `${userId}-numerology-${module}`,
+    );
+    if (!supply) {
+      throw new NotFoundException(
+        'Nenhum material encontrado com essas informações',
+      );
+    }
+    return supply;
+  }
+
+  async findAstrologyModuleByUserId(userId: string, module: AstrologyModuleType) {
+    const supply = await this.supplyRepository.findById(
+      `${userId}-astrology-${module}`,
     );
     if (!supply) {
       throw new NotFoundException(

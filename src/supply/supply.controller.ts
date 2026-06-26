@@ -5,7 +5,7 @@ import { AuthGuard } from '../auth/guards/auth.guard';
 import { RoleGuard } from '../auth/guards/role.guard';
 import { Role } from '../decorators/role.decorator';
 import { Roles } from '../enums/role.enum';
-import type { HumanDesignModuleType } from './entities/supply.entity';
+import type { HumanDesignModuleType, AstrologyModuleType } from './entities/supply.entity';
 
 @Controller('supply')
 @UseGuards(AuthGuard, RoleGuard)
@@ -51,6 +51,14 @@ export class SupplyController {
     @Param('module') module: string,
   ) {
     return await this.service.findNumerologyModuleByUserId(userId, module);
+  }
+
+  @Get('astrology/:module/:userId')
+  async getAstrologyModuleByUserId(
+    @Param('userId') userId: string,
+    @Param('module') module: AstrologyModuleType,
+  ) {
+    return await this.service.findAstrologyModuleByUserId(userId, module);
   }
 
   @Get('check/:userId/:pillar')

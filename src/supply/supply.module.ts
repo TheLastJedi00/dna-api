@@ -7,10 +7,11 @@ import { HumanDesignModule } from '../human-design/human-design.module';
 import { PromptsModule } from '../prompts/prompts.module';
 import { SupplyRepository } from './supply.repository';
 import { NumerologyModule } from 'src/numerology/numerology.module';
+import { AstrologyModule } from 'src/astrology/astrology.module';
 
 @Module({
     controllers: [SupplyController],
     providers: [SupplyService, GeminiProvider, SupplyRepository],
-    imports: [UsersModule, HumanDesignModule, PromptsModule, NumerologyModule]
+    imports: [UsersModule, HumanDesignModule, PromptsModule, NumerologyModule, AstrologyModule]
 })
 export class SupplyModule {}
