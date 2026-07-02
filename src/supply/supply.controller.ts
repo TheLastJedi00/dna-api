@@ -11,7 +11,7 @@ import type {
 } from './entities/supply.entity';
 
 @Controller('supply')
-// @UseGuards(AuthGuard, RoleGuard)
+@UseGuards(AuthGuard, RoleGuard)
 export class SupplyController {
   constructor(private readonly service: SupplyService) {}
 
@@ -32,7 +32,7 @@ export class SupplyController {
   }
 
   @Post('/:pillar/:userId')
-  // @Role(Roles.ADMIN, Roles.MANAGER)
+  @Role(Roles.ADMIN, Roles.MANAGER)
   async createFullPillarByUserId(
     @Param('userId') id: string,
     @Param('pillar') pillar: string,
