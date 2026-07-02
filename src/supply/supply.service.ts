@@ -195,7 +195,7 @@ export class SupplyService {
 
   async findPerfectPlainByUserId(userId: string) {
     const supply = await this.supplyRepository.findById(
-      `${userId}-perfect-plain`,
+      `${userId}-perfect-plain-perfect-plain`,
     );
     if (!supply) {
       throw new NotFoundException(
