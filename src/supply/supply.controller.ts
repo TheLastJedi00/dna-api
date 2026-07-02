@@ -5,7 +5,10 @@ import { AuthGuard } from '../auth/guards/auth.guard';
 import { RoleGuard } from '../auth/guards/role.guard';
 import { Role } from '../decorators/role.decorator';
 import { Roles } from '../enums/role.enum';
-import type { HumanDesignModuleType, AstrologyModuleType } from './entities/supply.entity';
+import type {
+  HumanDesignModuleType,
+  AstrologyModuleType,
+} from './entities/supply.entity';
 
 @Controller('supply')
 @UseGuards(AuthGuard, RoleGuard)
@@ -34,7 +37,7 @@ export class SupplyController {
     @Param('userId') id: string,
     @Param('pillar') pillar: string,
   ) {
-    return await this.service.createHumanDesignPillarByUserId(id, pillar);
+    return await this.service.createFullPillarByUserId(id, pillar);
   }
 
   @Get('human-design/:module/:userId')
@@ -59,6 +62,11 @@ export class SupplyController {
     @Param('module') module: AstrologyModuleType,
   ) {
     return await this.service.findAstrologyModuleByUserId(userId, module);
+  }
+
+  @Get('perfect-plain/:userId')
+  async getAPerfectPlainByUserId(@Param('userId') userId: string) {
+    return await this.service.findPerfectPlainByUserId(userId);
   }
 
   @Get('check/:userId/:pillar')
