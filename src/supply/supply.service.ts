@@ -41,7 +41,6 @@ export class SupplyService {
     pillar: string,
     module: string,
   ) {
-    console.log(`[Service] Buscando por ${module} em ${pillar}`);
     switch (pillar) {
       case 'human-design':
         return await this.createHumanDesignModule(id, module);
