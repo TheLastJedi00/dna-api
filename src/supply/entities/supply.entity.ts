@@ -125,7 +125,7 @@ export class Topic {
 export class Supply {
   id!: string;
   pillar!: string;
-  module!: HumanDesignModuleType | NumerologyModuleType | AstrologyModuleType;
+  module!: HumanDesignModuleType | NumerologyModuleType | AstrologyModuleType | 'perfect-plain';
   userId!: string;
   topics!: Topic[];
 
@@ -144,7 +144,11 @@ export class Supply {
       case 'numerology': 
         return this.validateNumerologyModule(module);
       case 'astrology': 
-        return this.validateAsrtrologyModule(module);
+        return this.validateAstrologyModule(module);
+      case 'perfect-plain':
+        return pillar
+      default:
+        throw Error(`Pillar ${pillar} desconhecido`)
     }
   }
 
@@ -168,7 +172,7 @@ export class Supply {
     return module as NumerologyModuleType;
   }
 
-  validateAsrtrologyModule(module: string) {
+  validateAstrologyModule(module: string) {
     if (!validAstrologyModules.includes(module)) {
       throw new HttpException(
         `"${module}" is not a valid Astrology Module.`,
