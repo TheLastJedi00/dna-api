@@ -22,7 +22,7 @@ export class PromptsRepository {
 
   async findByPillarAndModule(pillar: string, module: string) {
     const snap = await this.db.where("pillar","==",pillar).where("module","==",module).limit(1).get();
-    if(!snap){
+    if(snap.empty){
       return null
     }
     const doc = snap.docs[0].data();
