@@ -56,7 +56,7 @@ describe('SupplyService — perfect-plain', () => {
     await service.createModuleByUserIdAndPillar(
       'u1',
       'perfect-plain',
-      'plano-perfeito',
+      'perfect-plain',
     );
     expect(gemini.generateTopics).toHaveBeenCalledTimes(1);
     const input = gemini.generateTopics.mock.calls[0][0] as string;
@@ -71,7 +71,7 @@ describe('SupplyService — perfect-plain', () => {
   it('nega geração se algum dos 3 pilares não existir (pré-condição)', async () => {
     num.findOneByUser.mockRejectedValue(new Error('not found'));
     await expect(
-      service.createModuleByUserIdAndPillar('u1', 'perfect-plain', 'plano-perfeito'),
+      service.createModuleByUserIdAndPillar('u1', 'perfect-plain', 'perfect-plain'),
     ).rejects.toBeInstanceOf(ConflictException);
     expect(gemini.generateTopics).not.toHaveBeenCalled();
   });
