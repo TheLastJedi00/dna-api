@@ -1,5 +1,4 @@
 import { ConflictException, Injectable, UnauthorizedException } from '@nestjs/common';
-import { UpdateAuthDto } from './dto/update-auth.dto';
 import { AuthRepository } from './auth.repository';
 import { Auth } from './entities/auth.entity';
 import { BcryptService } from './bcrypt.service';
@@ -25,10 +24,6 @@ export class AuthService {
       const auth = new Auth({ ...data, password: hashPass, roles: roles });
       const created = await this.repository.create(auth);
       return created;
-  }
-
-  findAll() {
-    return `This action returns all auth`;
   }
 
   async loginByCredentials(credentials: UserLoginDto) {
@@ -87,13 +82,5 @@ export class AuthService {
       throw new Error('JWT_REFRESH_SECRET não configurado no ambiente.');
     }
     return secret;
-  }
-
-  update(id: number, updateAuthDto: UpdateAuthDto) {
-    return `This action updates a #${id} auth`;
-  }
-
-  remove(id: number) {
-    return `This action removes a #${id} auth`;
   }
 }
