@@ -57,6 +57,9 @@ export const validAstrologyModules = [
   'conclusao',
 ];
 
+// Plano Perfeito: pilar de módulo único que reaproveita os 3 pilares.
+export const validPerfectPlainModules = ['plano-perfeito'];
+
 export type NumerologyModuleType =
   | 'motivacao'
   | 'impressao'
@@ -111,6 +114,8 @@ export type AstrologyModuleType =
   | 'elemento-agua'
   | 'conclusao';
 
+export type PerfectPlainModuleType = 'plano-perfeito';
+
 export class Topic {
   title!: string;
   items!: string[];
@@ -125,7 +130,11 @@ export class Topic {
 export class Supply {
   id!: string;
   pillar!: string;
-  module!: HumanDesignModuleType | NumerologyModuleType | AstrologyModuleType;
+  module!:
+    | HumanDesignModuleType
+    | NumerologyModuleType
+    | AstrologyModuleType
+    | PerfectPlainModuleType;
   userId!: string;
   topics!: Topic[];
 
@@ -139,13 +148,25 @@ export class Supply {
 
   validateModuleByPillar(pillar: string, module) {
     switch(pillar){
-      case 'human-design': 
+      case 'human-design':
         return this.validateHumanDesignModule(module);
-      case 'numerology': 
+      case 'numerology':
         return this.validateNumerologyModule(module);
-      case 'astrology': 
+      case 'astrology':
         return this.validateAstrologyModule(module);
+      case 'perfect-plain':
+        return this.validatePerfectPlainModule(module);
     }
+  }
+
+  validatePerfectPlainModule(module: string) {
+    if (!validPerfectPlainModules.includes(module)) {
+      throw new HttpException(
+        `"${module}" is not a valid Perfect Plain Module.`,
+        HttpStatus.CONFLICT,
+      );
+    }
+    return module as PerfectPlainModuleType;
   }
 
   validateHumanDesignModule(module: string) {
