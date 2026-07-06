@@ -8,6 +8,8 @@ import { AuthModule } from './auth/auth.module';
 import { ConfigModule } from '@nestjs/config';
 import { APP_GUARD } from '@nestjs/core';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
+import { ThrottlerStorageRedisService } from '@nest-lab/throttler-storage-redis';
+import { RedisModule } from './redis/redis.module';
 import { DnaStatusModule } from './dna-status/dna-status.module';
 import { NumerologyModule } from './numerology/numerology.module';
 import { AstrologyModule } from './astrology/astrology.module';
@@ -15,11 +17,20 @@ import { AstrologyModule } from './astrology/astrology.module';
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
-    // Rate-limit em memória por instância. O storage compartilhado (Redis)
-    // entre réplicas do Cloud Run é adicionado na Fase 3 (T3.3).
-    ThrottlerModule.forRoot([
-      { name: 'default', ttl: 60_000, limit: 120 },
-    ]),
+    RedisModule,
+    // Rate-limit compartilhado via Redis entre réplicas do Cloud Run quando
+    // REDIS_URL está definido; sem Redis, cai para o storage em memória.
+    ThrottlerModule.forRootAsync({
+      useFactory: () => {
+        const url = process.env.REDIS_URL;
+        return {
+          throttlers: [{ name: 'default', ttl: 60_000, limit: 120 }],
+          storage: url
+            ? new ThrottlerStorageRedisService(url)
+            : undefined,
+        };
+      },
+    }),
     HumanDesignModule,
     UsersModule,
     FirebaseModule,
