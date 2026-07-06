@@ -55,10 +55,11 @@ export class UsersService {
     rolesFromToken: string[],
     idFromUrl: string,
   ) {
-    if (
-      idFromToken !== idFromUrl &&
-      !rolesFromToken.includes(Roles.ADMIN || Roles.MANAGER)
-    ) {
+    const isPrivileged =
+      rolesFromToken?.some(
+        (role) => role === Roles.ADMIN || role === Roles.MANAGER,
+      ) ?? false;
+    if (idFromToken !== idFromUrl && !isPrivileged) {
       throw new UnauthorizedException(
         'Impossível consultar dados de outro usuário.',
       );
