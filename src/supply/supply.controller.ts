@@ -3,6 +3,7 @@ import { SupplyService } from './supply.service';
 import { RequestDto } from './dtos/request.dto';
 import { AuthGuard } from '../auth/guards/auth.guard';
 import { RoleGuard } from '../auth/guards/role.guard';
+import { OwnershipGuard } from '../auth/guards/ownership.guard';
 import { Role } from '../decorators/role.decorator';
 import { Roles } from '../enums/role.enum';
 import type { HumanDesignModuleType } from './entities/supply.entity';
@@ -38,6 +39,7 @@ export class SupplyController {
   }
 
   @Get('human-design/:module/:userId')
+  @UseGuards(OwnershipGuard)
   async getHumanDesignModuleByUserId(
     @Param('userId') userId: string,
     @Param('module') module: HumanDesignModuleType,
@@ -46,6 +48,7 @@ export class SupplyController {
   }
 
   @Get('numerology/:module/:userId')
+  @UseGuards(OwnershipGuard)
   async getNumerologyModuleByUserId(
     @Param('userId') userId: string,
     @Param('module') module: string,
@@ -54,6 +57,7 @@ export class SupplyController {
   }
 
   @Get('astrology/:module/:userId')
+  @UseGuards(OwnershipGuard)
   async getAstrologyModuleByUserId(
     @Param('userId') userId: string,
     @Param('module') module: string,
