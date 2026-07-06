@@ -6,6 +6,8 @@ import { SupplyModule } from './supply/supply.module';
 import { PromptsModule } from './prompts/prompts.module';
 import { AuthModule } from './auth/auth.module';
 import { ConfigModule } from '@nestjs/config';
+import { APP_GUARD } from '@nestjs/core';
+import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { DnaStatusModule } from './dna-status/dna-status.module';
 import { NumerologyModule } from './numerology/numerology.module';
 import { AstrologyModule } from './astrology/astrology.module';
@@ -13,6 +15,11 @@ import { AstrologyModule } from './astrology/astrology.module';
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
+    // Rate-limit em memória por instância. O storage compartilhado (Redis)
+    // entre réplicas do Cloud Run é adicionado na Fase 3 (T3.3).
+    ThrottlerModule.forRoot([
+      { name: 'default', ttl: 60_000, limit: 120 },
+    ]),
     HumanDesignModule,
     UsersModule,
     FirebaseModule,
@@ -24,6 +31,6 @@ import { AstrologyModule } from './astrology/astrology.module';
     AstrologyModule,
   ],
   controllers: [],
-  providers: [],
+  providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
 })
 export class AppModule {}
