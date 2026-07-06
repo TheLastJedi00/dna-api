@@ -1,6 +1,5 @@
-import { Body, Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
+import { Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
 import { SupplyService } from './supply.service';
-import { RequestDto } from './dtos/request.dto';
 import { AuthGuard } from '../auth/guards/auth.guard';
 import { RoleGuard } from '../auth/guards/role.guard';
 import { OwnershipGuard } from '../auth/guards/ownership.guard';
@@ -12,12 +11,6 @@ import type { HumanDesignModuleType } from './entities/supply.entity';
 @UseGuards(AuthGuard, RoleGuard)
 export class SupplyController {
   constructor(private readonly service: SupplyService) {}
-
-  @Post()
-  @Role(Roles.MANAGER)
-  async requestGemini(@Body() content: RequestDto) {
-    await this.service.request(content);
-  }
 
   @Post('/:pillar/:module/:userId')
   @Role(Roles.ADMIN, Roles.MANAGER)

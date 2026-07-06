@@ -1,6 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { GeminiProvider } from './gemini/gemini.provider';
-import { RequestDto } from './dtos/request.dto';
 import { UsersService } from 'src/users/users.service';
 import { HumanDesignService } from 'src/human-design/human-design.service';
 import { PromptsService } from 'src/prompts/prompts.service';
@@ -31,10 +30,6 @@ export class SupplyService {
     return `${userId}-${pillar}-${module}`;
   }
 
-  async request(content: RequestDto) {
-    await this.gemini.generateTopics(content.content);
-  }
-
   async createModuleByUserIdAndPillar(
     id: string,
     pillar: string,
@@ -44,7 +39,6 @@ export class SupplyService {
       this.supplyIdGenerator(id, pillar, module),
     );
     if (existingSupply) {
-      console.log(`Módulo ${module} já existe pra essse usuário.`);
       return existingSupply;
     }
     const user = await this.users.findOne(id);
