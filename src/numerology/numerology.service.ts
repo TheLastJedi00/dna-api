@@ -9,12 +9,8 @@ export class NumerologyService {
   constructor(private readonly repository: NumerologyRepository) {}
 
   async create(dto: CreateNumerologyDto) {
-    try {
-      const obj = new Numerology(dto);
-      await this.repository.create(obj);
-    } catch(e) {
-      throw new Error(`[Service Error] ${e}`);
-    }
+    const obj = new Numerology(dto);
+    await this.repository.create(obj);
   }
 
   async findOne(id: string) {

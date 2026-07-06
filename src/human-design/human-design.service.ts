@@ -9,12 +9,8 @@ export class HumanDesignService {
   constructor(private readonly repository: HumanDesignRepository) {}
 
   async create(dto: CreateHumanDesignDto) {
-    try {
-      const obj = new HumanDesign(dto);
-      await this.repository.create(obj);
-    } catch {
-      throw Error;
-    }
+    const obj = new HumanDesign(dto);
+    await this.repository.create(obj);
   }
 
   async findOne(id: string) {

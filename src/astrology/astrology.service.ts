@@ -9,12 +9,8 @@ export class AstrologyService {
   constructor(private readonly repository: AstrologyRepository) {}
 
   async create(dto: CreateAstrologyDto) {
-    try {
-      const obj = new Astrology(dto);
-      await this.repository.create(obj);
-    } catch(e) {
-      throw new Error(`[Service Error] ${e}`);
-    }
+    const obj = new Astrology(dto);
+    await this.repository.create(obj);
   }
 
   async findOne(id: string) {
