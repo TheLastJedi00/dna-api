@@ -55,6 +55,15 @@ Veja `.env.example`. Destaques:
 - `POST /auth/refresh` — renova o par a partir do refresh (rotação; nega se revogado).
 - `POST /auth/logout` — revoga o refresh informado.
 
+## Plano Perfeito
+
+Pilar `perfect-plain` (módulo único `plano-perfeito`) que **reaproveita os dados dos 3
+pilares** (Desenho Humano, Numerologia, Astrologia) para gerar um plano único.
+
+- `POST /supply/perfect-plain/:userId` — gera (requer os 3 pilares preenchidos).
+- `GET /supply/perfect-plain/:userId` — lê o plano gerado (OwnershipGuard).
+- `GET /supply/check/:userId/perfect-plain` — existência.
+
 ## Health
 
 - `GET /health` — status da API, conectividade do Redis e métricas de cache.
