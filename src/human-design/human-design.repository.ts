@@ -1,7 +1,7 @@
 import { firestore } from '../firebase/firebase.module';
 import { HumanDesign } from './entities/human-design.model';
 import { instanceToPlain, plainToInstance } from 'class-transformer';
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import * as admin from 'firebase-admin';
 
 @Injectable()
@@ -36,5 +36,23 @@ export class HumanDesignRepository {
     }
     let data = snap.docs[0].data();
     return plainToInstance(HumanDesign, data);
+  }
+
+  async update(id: string, partial: Partial<HumanDesign>): Promise<void> {
+    try {
+      await this.db
+        .doc(id)
+        .update(instanceToPlain(partial) as { [key: string]: any });
+    } catch (e) {
+      throw new Error('[Repository Error]: ' + e);
+    }
+  }
+
+  async delete(id: string): Promise<void> {
+    try {
+      await this.db.doc(id).delete();
+    } catch (e) {
+      throw new Error('[Repository Error]: ' + e);
+    }
   }
 }

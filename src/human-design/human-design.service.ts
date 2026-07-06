@@ -17,10 +17,6 @@ export class HumanDesignService {
     }
   }
 
-  findAll() {
-    return `This action returns all humanDesign`;
-  }
-
   async findOne(id: string) {
     const data = await this.repository.findById(id);
     if (!data) {
@@ -42,11 +38,13 @@ export class HumanDesignService {
     return !!search
   }
 
-  update(id: number, updateHumanDesignDto: UpdateHumanDesignDto) {
-    return `This action updates a #${id} humanDesign`;
+  async update(id: string, dto: UpdateHumanDesignDto) {
+    await this.findOne(id);
+    return this.repository.update(id, dto);
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} humanDesign`;
+  async remove(id: string) {
+    await this.findOne(id);
+    return this.repository.delete(id);
   }
 }

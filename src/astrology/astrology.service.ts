@@ -17,10 +17,6 @@ export class AstrologyService {
     }
   }
 
-  findAll() {
-    return `This action returns all astrology`;
-  }
-
   async findOne(id: string) {
     const data = await this.repository.findById(id);
     if (!data) {

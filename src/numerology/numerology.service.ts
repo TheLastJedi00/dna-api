@@ -17,10 +17,6 @@ export class NumerologyService {
     }
   }
 
-  findAll() {
-    return `This action returns all numerology`;
-  }
-
   async findOne(id: string) {
     const data = await this.repository.findById(id);
     if (!data) {
