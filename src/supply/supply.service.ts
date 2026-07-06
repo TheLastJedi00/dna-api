@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { GeminiProvider } from './gemini/gemini.provider';
 import { UsersService } from 'src/users/users.service';
 import { HumanDesignService } from 'src/human-design/human-design.service';
@@ -9,6 +13,7 @@ import {
   validAstrologyModules,
   validHumanDesignModules,
   validNumerologyModules,
+  validPerfectPlainModules,
 } from './entities/supply.entity';
 import { SupplyRepository } from './supply.repository';
 import { NumerologyService } from 'src/numerology/numerology.service';
@@ -38,6 +43,37 @@ export class SupplyService {
     return `${userId}-${pillar}-${module}`;
   }
 
+  /**
+   * Monta o texto dos dados do(s) pilar(es) para o Gemini. Para os 3 pilares,
+   * usa o próprio dado; para `perfect-plain`, combina os 3 (reaproveitamento).
+   */
+  private async buildDnaPrompt(id: string, pillar: string): Promise<string> {
+    if (pillar === 'perfect-plain') {
+      try {
+        const [hd, num, astro] = await Promise.all([
+          this.humanDesignService.findOneByUser(id),
+          this.numerologyService.findOneByUser(id),
+          this.astrologyService.findOneByUser(id),
+        ]);
+        return `${hd.toPrompt()}\n${num.toPrompt()}\n${astro.toPrompt()}`;
+      } catch {
+        throw new ConflictException(
+          'Gere os dados dos 3 pilares (Desenho Humano, Numerologia e Astrologia) antes de criar o Plano Perfeito.',
+        );
+      }
+    }
+    if (pillar === 'human-design') {
+      return (await this.humanDesignService.findOneByUser(id)).toPrompt();
+    }
+    if (pillar === 'numerology') {
+      return (await this.numerologyService.findOneByUser(id)).toPrompt();
+    }
+    if (pillar === 'astrology') {
+      return (await this.astrologyService.findOneByUser(id)).toPrompt();
+    }
+    throw new ConflictException(`Pilar "${pillar}" inválido.`);
+  }
+
   async createModuleByUserIdAndPillar(
     id: string,
     pillar: string,
@@ -50,18 +86,11 @@ export class SupplyService {
       return existingSupply;
     }
     const user = await this.users.findOne(id);
-    let dnaData;
-    if (pillar === 'human-design') {
-      dnaData = await this.humanDesignService.findOneByUser(id);
-    } else if (pillar === 'numerology') {
-      dnaData = await this.numerologyService.findOneByUser(id);
-    } else if (pillar === 'astrology') {
-      dnaData = await this.astrologyService.findOneByUser(id);
-    }
+    const dnaPrompt = await this.buildDnaPrompt(id, pillar);
     const mainPrompt = await this.prompts.findByPillar('main');
     const prompt = await this.prompts.findByPillarAndModule(pillar, module);
     const topics = await this.gemini.generateTopics(
-      `${mainPrompt[0].prompt}\n${prompt.prompt}\n${dnaData.toPrompt()}\n${user.toUserDataPrompt()}`,
+      `${mainPrompt[0].prompt}\n${prompt.prompt}\n${dnaPrompt}\n${user.toUserDataPrompt()}`,
     );
     const supply = new Supply(pillar, module, user.id, topics);
     const created = await this.supplyRepository.create(supply);
@@ -82,6 +111,9 @@ export class SupplyService {
         break;
       case 'astrology':
         modules = validAstrologyModules;
+        break;
+      case 'perfect-plain':
+        modules = validPerfectPlainModules;
         break;
     }
 
@@ -108,6 +140,7 @@ export class SupplyService {
       'human-design': validHumanDesignModules,
       'numerology': validNumerologyModules,
       'astrology': validAstrologyModules,
+      'perfect-plain': validPerfectPlainModules,
     };
     const expectedModules = validModulesMap[pillar];
     return expectedModules.every((e) => supplies.some((s) => s.module === e))
