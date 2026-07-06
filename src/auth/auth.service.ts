@@ -48,7 +48,45 @@ export class AuthService {
       email: userData.email,
       roles: userData.roles,
     });
-    return { access_token: await this.jwtService.signAsync(payload.toPlain()) };
+    return this.issueTokens(payload);
+  }
+
+  /**
+   * Renova o par de tokens a partir de um refresh token válido (stateless).
+   * A rotação/revogação persistente (blocklist) é adicionada na Fase 3 com Redis.
+   */
+  async refresh(refreshToken: string) {
+    let decoded: JwtPayload;
+    try {
+      decoded = await this.jwtService.verifyAsync<JwtPayload>(refreshToken, {
+        secret: this.refreshSecret(),
+      });
+    } catch {
+      throw new UnauthorizedException('Refresh token inválido ou expirado.');
+    }
+    const payload = new JwtPayload({
+      id: decoded.id,
+      email: decoded.email,
+      roles: decoded.roles,
+    });
+    return this.issueTokens(payload);
+  }
+
+  private async issueTokens(payload: JwtPayload) {
+    const access_token = await this.jwtService.signAsync(payload.toPlain());
+    const refresh_token = await this.jwtService.signAsync(payload.toPlain(), {
+      secret: this.refreshSecret(),
+      expiresIn: (process.env.JWT_REFRESH_EXPIRES ?? '7d') as any,
+    });
+    return { access_token, refresh_token };
+  }
+
+  private refreshSecret(): string {
+    const secret = process.env.JWT_REFRESH_SECRET;
+    if (!secret) {
+      throw new Error('JWT_REFRESH_SECRET não configurado no ambiente.');
+    }
+    return secret;
   }
 
   update(id: number, updateAuthDto: UpdateAuthDto) {
