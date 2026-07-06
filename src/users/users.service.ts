@@ -4,7 +4,6 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { CreateUserDto } from './dto/create-user.dto';
-import { UpdateUserDto } from './dto/update-user.dto';
 import { UsersRepository } from './users.repository';
 import { User } from './entities/user.entity';
 import { AuthService } from 'src/auth/auth.service';
@@ -34,10 +33,6 @@ export class UsersService {
     const users = await this.repository.findAllActiveUsers(orderBy, direction);
 
     return users;
-  }
-
-  findAll() {
-    return `This action returns all users`;
   }
 
   async findOne(id: string) {
@@ -71,10 +66,6 @@ export class UsersService {
       );
     }
     return user;
-  }
-
-  update(id: number, updateUserDto: UpdateUserDto) {
-    return `This action updates a #${id} user`;
   }
 
   async disable(id: string) {
