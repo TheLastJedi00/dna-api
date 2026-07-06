@@ -162,7 +162,7 @@ export class SupplyService {
   }
 
   async findPerfectPlainByUserId(userId: string) {
-    return this.readModule(userId, 'perfect-plain', 'plano-perfeito');
+    return this.readModule(userId, 'perfect-plain', 'perfect-plain');
   }
 
   private readModule(userId: string, pillar: string, module: string) {
