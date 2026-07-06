@@ -161,6 +161,10 @@ export class SupplyService {
     return this.readModule(userId, 'astrology', module);
   }
 
+  async findPerfectPlainByUserId(userId: string) {
+    return this.readModule(userId, 'perfect-plain', 'plano-perfeito');
+  }
+
   private readModule(userId: string, pillar: string, module: string) {
     return this.cache.getOrSet(
       this.supplyCacheKey(pillar, module, userId),
