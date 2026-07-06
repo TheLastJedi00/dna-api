@@ -58,6 +58,12 @@ export class SupplyController {
     return await this.service.findAstrologyModuleByUserId(userId, module);
   }
 
+  @Get('perfect-plain/:userId')
+  @UseGuards(OwnershipGuard)
+  async getPerfectPlainByUserId(@Param('userId') userId: string) {
+    return await this.service.findPerfectPlainByUserId(userId);
+  }
+
   @Get('check/:userId/:pillar')
   @Role(Roles.ADMIN, Roles.MANAGER)
   async isSupplyCreatedForThisUser(
