@@ -18,4 +18,10 @@ export class AuthController {
   refresh(@Body() { refresh_token }: RefreshDto) {
     return this.authService.refresh(refresh_token);
   }
+
+  @Post('logout')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async logout(@Body() { refresh_token }: RefreshDto) {
+    await this.authService.logout(refresh_token);
+  }
 }
