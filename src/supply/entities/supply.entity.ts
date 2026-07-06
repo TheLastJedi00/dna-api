@@ -58,7 +58,8 @@ export const validAstrologyModules = [
 ];
 
 // Plano Perfeito: pilar de módulo único que reaproveita os 3 pilares.
-export const validPerfectPlainModules = ['plano-perfeito'];
+// O slug do módulo casa com o cadastrado na coleção `prompts` (perfect-plain).
+export const validPerfectPlainModules = ['perfect-plain'];
 
 export type NumerologyModuleType =
   | 'motivacao'
@@ -114,7 +115,7 @@ export type AstrologyModuleType =
   | 'elemento-agua'
   | 'conclusao';
 
-export type PerfectPlainModuleType = 'plano-perfeito';
+export type PerfectPlainModuleType = 'perfect-plain';
 
 export class Topic {
   title!: string;
