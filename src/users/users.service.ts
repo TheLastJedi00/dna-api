@@ -17,6 +17,10 @@ export class UsersService {
   ) {}
 
   async createMaestra(data: CreateUserDto) {
+    // Fonte de verdade de autorização = documento `auth` (as roles do JWT saem
+    // dele). `users.roles` é uma cópia denormalizada usada só para
+    // listagem/filtro (findAllActiveUsers) e é gravada atomicamente aqui com o
+    // mesmo valor. Qualquer futura mutação de role deve atualizar os dois.
     const roles = ['USER'];
     const userAuth = await this.auth.create(data.login, roles);
     const object = new User(data, userAuth.id, roles);
