@@ -10,6 +10,7 @@ import { APP_GUARD } from '@nestjs/core';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { ThrottlerStorageRedisService } from '@nest-lab/throttler-storage-redis';
 import { RedisModule } from './redis/redis.module';
+import { HealthController } from './health/health.controller';
 import { DnaStatusModule } from './dna-status/dna-status.module';
 import { NumerologyModule } from './numerology/numerology.module';
 import { AstrologyModule } from './astrology/astrology.module';
@@ -41,7 +42,7 @@ import { AstrologyModule } from './astrology/astrology.module';
     NumerologyModule,
     AstrologyModule,
   ],
-  controllers: [],
+  controllers: [HealthController],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
 })
 export class AppModule {}

@@ -10,14 +10,26 @@ import { REDIS_CLIENT } from './redis.constants';
 @Injectable()
 export class CacheService {
   private readonly logger = new Logger(CacheService.name);
+  private hits = 0;
+  private misses = 0;
 
   constructor(@Inject(REDIS_CLIENT) private readonly client: Redis | null) {}
+
+  /** Métricas simples de hit/miss para observabilidade (ex.: /health). */
+  stats(): { hits: number; misses: number; enabled: boolean } {
+    return { hits: this.hits, misses: this.misses, enabled: !!this.client };
+  }
 
   async get<T>(key: string): Promise<T | null> {
     if (!this.client) return null;
     try {
       const raw = await this.client.get(key);
-      return raw ? (JSON.parse(raw) as T) : null;
+      if (raw) {
+        this.hits++;
+        return JSON.parse(raw) as T;
+      }
+      this.misses++;
+      return null;
     } catch (e) {
       this.logger.warn(`get falhou (${key}): ${(e as Error).message}`);
       return null;
