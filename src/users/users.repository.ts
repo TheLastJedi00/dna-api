@@ -24,47 +24,47 @@ export class UsersRepository {
 
   async findById(id: string) {
     const snap = await this.db.doc(id).get();
-    if (!snap) {
+    if (!snap.exists) {
       return null;
     }
     const data = snap.data();
-    if(data === undefined){
+    if (data === undefined) {
       return null;
     }
-    const obj = {
-      id: id,
-      fullName: data.fullName,
-      birthDate: data.birthDate,
-      birthTime: data.birthTime,
-      birthPlace: data.birthPlace
-    }
-    return new User(obj as CreateUserDto, id);
+    // Preserva o documento completo, incluindo roles e isActive.
+    const user = new User(data as CreateUserDto, id, data.roles);
+    user.isActive = data.isActive ?? true;
+    return user;
   }
 
-  async findAllActiveUsers(
-    orderBy: string,
-    direction: string,
-  ) {
-    const snap = await this.db.where('isActive', '==', true).where('roles', 'array-contains', 'USER').get();
+  /**
+   * Lista usuários ativos com role USER, ordenados.
+   * Requer índice composto no Firestore: isActive (==) + roles (array-contains)
+   * + <orderBy>. Ex.: (isActive ASC, roles ARRAY, fullName ASC).
+   */
+  async findAllActiveUsers(orderBy: string, direction: string) {
+    const snap = await this.db
+      .where('isActive', '==', true)
+      .where('roles', 'array-contains', 'USER')
+      .orderBy(orderBy, direction as OrderByDirection)
+      .get();
 
-      if(snap.empty){
-        return []
-      }
+    if (snap.empty) {
+      return [];
+    }
 
-      const users = snap.docs.map(s => {
-        const data = s.data()
-        return new User(data as CreateUserDto)
-      })
+    const users = snap.docs.map((s) => {
+      const data = s.data();
+      const user = new User(data as CreateUserDto, data.id, data.roles);
+      user.isActive = data.isActive ?? true;
+      return user;
+    });
 
-      return users
+    return users;
   }
 
-  async update(id: string, user: User){
-    const snap = this.db.doc(id);
-    if(!snap){
-      return null
-    }
-    snap.set(instanceToPlain(user));
+  async update(id: string, user: User) {
+    await this.db.doc(id).set(instanceToPlain(user));
     return user;
   }
 }

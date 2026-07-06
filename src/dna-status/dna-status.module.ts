@@ -2,7 +2,6 @@ import { Module } from '@nestjs/common';
 import { DnaStatusService } from './dna-status.service';
 import { DnaStatusController } from './dna-status.controller';
 import { HumanDesignModule } from '../human-design/human-design.module';
-import { Numerology } from 'src/numerology/entities/numerology.entity';
 import { NumerologyModule } from 'src/numerology/numerology.module';
 import { AstrologyModule } from 'src/astrology/astrology.module';
 

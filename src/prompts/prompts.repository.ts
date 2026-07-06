@@ -21,7 +21,6 @@ export class PromptsRepository {
   }
 
   async findByPillarAndModule(pillar: string, module: string) {
-    console.log(`Buscando por módulo ${module} em ${pillar}`)
     const snap = await this.db.where("pillar","==",pillar).where("module","==",module).limit(1).get();
     if(!snap){
       return null

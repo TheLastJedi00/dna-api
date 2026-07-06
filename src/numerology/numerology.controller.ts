@@ -15,6 +15,7 @@ import { Role } from '../decorators/role.decorator';
 import { Roles } from '../enums/role.enum';
 import { AuthGuard } from '../auth/guards/auth.guard';
 import { RoleGuard } from '../auth/guards/role.guard';
+import { OwnershipGuard } from '../auth/guards/ownership.guard';
 
 @Controller('numerology')
 @UseGuards(AuthGuard, RoleGuard)
@@ -27,13 +28,8 @@ export class NumerologyController {
     return await this.numerologyService.create(createNumerologyDto);
   }
 
-  @Get()
-  @Role(Roles.ADMIN)
-  findAll() {
-    return this.numerologyService.findAll();
-  }
-
   @Get('user/:userId')
+  @UseGuards(OwnershipGuard)
   async findOneByUser(@Param('userId') userId: string) {
     return await this.numerologyService.findOneByUser(userId);
   }

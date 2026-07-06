@@ -11,7 +11,18 @@ import { Topic } from '../entities/supply.entity';
 
 @Injectable()
 export class GeminiProvider {
-  private readonly ai = new GoogleGenAI({});
+  private readonly model = process.env.GEMINI_MODEL ?? 'gemini-3-flash-preview';
+  private readonly ai: GoogleGenAI;
+
+  constructor() {
+    const apiKey = process.env.GEMINI_API_KEY ?? process.env.GOOGLE_API_KEY;
+    if (!apiKey) {
+      throw new Error(
+        'GEMINI_API_KEY (ou GOOGLE_API_KEY) não configurada no ambiente.',
+      );
+    }
+    this.ai = new GoogleGenAI({ apiKey });
+  }
 
   topicSchema = z.object({
     title: z.string().describe('Nome do respectivo tópico'),
@@ -23,7 +34,7 @@ export class GeminiProvider {
   async generateTopics(content: string) {
     try {
       const response = await this.ai.models.generateContent({
-        model: 'gemini-3-flash-preview',
+        model: this.model,
         contents: content,
         config: {
           responseMimeType: 'application/json',
