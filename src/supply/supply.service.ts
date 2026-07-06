@@ -13,6 +13,9 @@ import {
 import { SupplyRepository } from './supply.repository';
 import { NumerologyService } from 'src/numerology/numerology.service';
 import { AstrologyService } from 'src/astrology/astrology.service';
+import { CacheService } from 'src/redis/cache.service';
+
+const SUPPLY_CACHE_TTL = 60 * 60; // 1h
 
 @Injectable()
 export class SupplyService {
@@ -24,7 +27,12 @@ export class SupplyService {
     private readonly prompts: PromptsService,
     private readonly supplyRepository: SupplyRepository,
     private readonly astrologyService: AstrologyService,
+    private readonly cache: CacheService,
   ) {}
+
+  private supplyCacheKey(pillar: string, module: string, userId: string) {
+    return `supply:${pillar}:${module}:${userId}`;
+  }
 
   supplyIdGenerator(userId: string, pillar: string, module: string) {
     return `${userId}-${pillar}-${module}`;
@@ -56,7 +64,10 @@ export class SupplyService {
       `${mainPrompt[0].prompt}\n${prompt.prompt}\n${dnaData.toPrompt()}\n${user.toUserDataPrompt()}`,
     );
     const supply = new Supply(pillar, module, user.id, topics);
-    return await this.supplyRepository.create(supply);
+    const created = await this.supplyRepository.create(supply);
+    // Invalida cache de leitura desse módulo (foi (re)gerado).
+    await this.cache.del(this.supplyCacheKey(pillar, module, id));
+    return created;
   }
 
   async createFullPillarByUserId(userId: string, pillar: string) {
@@ -106,38 +117,32 @@ export class SupplyService {
     userId: string,
     module: HumanDesignModuleType,
   ) {
-    const supply = await this.supplyRepository.findById(
-      `${userId}-human-design-${module}`,
-    );
-    if (!supply) {
-      throw new NotFoundException(
-        'Nenhum material encontrado com essa informações',
-      );
-    }
-    return supply;
+    return this.readModule(userId, 'human-design', module);
   }
 
   async findNumerologyModuleByUserId(userId: string, module: string) {
-    const supply = await this.supplyRepository.findById(
-      `${userId}-numerology-${module}`,
-    );
-    if (!supply) {
-      throw new NotFoundException(
-        'Nenhum material encontrado com essas informações',
-      );
-    }
-    return supply;
+    return this.readModule(userId, 'numerology', module);
   }
 
   async findAstrologyModuleByUserId(userId: string, module: string) {
-    const supply = await this.supplyRepository.findById(
-      `${userId}-astrology-${module}`,
+    return this.readModule(userId, 'astrology', module);
+  }
+
+  private readModule(userId: string, pillar: string, module: string) {
+    return this.cache.getOrSet(
+      this.supplyCacheKey(pillar, module, userId),
+      SUPPLY_CACHE_TTL,
+      async () => {
+        const supply = await this.supplyRepository.findById(
+          `${userId}-${pillar}-${module}`,
+        );
+        if (!supply) {
+          throw new NotFoundException(
+            'Nenhum material encontrado com essas informações',
+          );
+        }
+        return supply;
+      },
     );
-    if (!supply) {
-      throw new NotFoundException(
-        'Nenhum material encontrado com essas informações',
-      );
-    }
-    return supply;
   }
 }
