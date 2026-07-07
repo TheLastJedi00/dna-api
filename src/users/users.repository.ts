@@ -3,7 +3,6 @@ import { firestore } from '../firebase/firebase.module';
 import { User } from './entities/user.entity';
 import { instanceToPlain, plainToInstance } from 'class-transformer';
 import * as admin from 'firebase-admin';
-import { OrderByDirection } from 'firebase-admin/firestore';
 import { CreateUserDto } from './dto/create-user.dto';
 
 @Injectable()
@@ -39,25 +38,36 @@ export class UsersRepository {
 
   /**
    * Lista usuários ativos com role USER, ordenados.
-   * Requer índice composto no Firestore: isActive (==) + roles (array-contains)
-   * + <orderBy>. Ex.: (isActive ASC, roles ARRAY, fullName ASC).
+   * Consulta apenas por `roles array-contains USER` (índice de array
+   * automático do Firestore) e aplica `isActive` + ordenação EM MEMÓRIA, para
+   * não exigir um índice composto (roles + isActive + <orderBy>).
    */
   async findAllActiveUsers(orderBy: string, direction: string) {
     const snap = await this.db
-      .where('isActive', '==', true)
       .where('roles', 'array-contains', 'USER')
-      .orderBy(orderBy, direction as OrderByDirection)
       .get();
 
     if (snap.empty) {
       return [];
     }
 
-    const users = snap.docs.map((s) => {
-      const data = s.data();
-      const user = new User(data as CreateUserDto, data.id, data.roles);
-      user.isActive = data.isActive ?? true;
-      return user;
+    const users = snap.docs
+      .map((s) => {
+        const data = s.data();
+        const user = new User(data as CreateUserDto, data.id, data.roles);
+        user.isActive = data.isActive ?? true;
+        return user;
+      })
+      .filter((user) => user.isActive);
+
+    const dir = direction === 'desc' ? -1 : 1;
+    users.sort((a, b) => {
+      const av = (a as unknown as Record<string, unknown>)[orderBy];
+      const bv = (b as unknown as Record<string, unknown>)[orderBy];
+      if (av == null && bv == null) return 0;
+      if (av == null) return 1;
+      if (bv == null) return -1;
+      return String(av).localeCompare(String(bv)) * dir;
     });
 
     return users;
