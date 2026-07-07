@@ -1,25 +1,16 @@
-import { Body, Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
+import { Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
 import { SupplyService } from './supply.service';
-import { RequestDto } from './dtos/request.dto';
 import { AuthGuard } from '../auth/guards/auth.guard';
 import { RoleGuard } from '../auth/guards/role.guard';
+import { OwnershipGuard } from '../auth/guards/ownership.guard';
 import { Role } from '../decorators/role.decorator';
 import { Roles } from '../enums/role.enum';
-import type {
-  HumanDesignModuleType,
-  AstrologyModuleType,
-} from './entities/supply.entity';
+import type { HumanDesignModuleType } from './entities/supply.entity';
 
 @Controller('supply')
 @UseGuards(AuthGuard, RoleGuard)
 export class SupplyController {
   constructor(private readonly service: SupplyService) {}
-
-  @Post()
-  @Role(Roles.MANAGER)
-  async requestGemini(@Body() content: RequestDto) {
-    await this.service.request(content);
-  }
 
   @Post('/:pillar/:module/:userId')
   @Role(Roles.ADMIN, Roles.MANAGER)
@@ -41,6 +32,7 @@ export class SupplyController {
   }
 
   @Get('human-design/:module/:userId')
+  @UseGuards(OwnershipGuard)
   async getHumanDesignModuleByUserId(
     @Param('userId') userId: string,
     @Param('module') module: HumanDesignModuleType,
@@ -49,6 +41,7 @@ export class SupplyController {
   }
 
   @Get('numerology/:module/:userId')
+  @UseGuards(OwnershipGuard)
   async getNumerologyModuleByUserId(
     @Param('userId') userId: string,
     @Param('module') module: string,
@@ -57,15 +50,17 @@ export class SupplyController {
   }
 
   @Get('astrology/:module/:userId')
+  @UseGuards(OwnershipGuard)
   async getAstrologyModuleByUserId(
     @Param('userId') userId: string,
-    @Param('module') module: AstrologyModuleType,
+    @Param('module') module: string,
   ) {
     return await this.service.findAstrologyModuleByUserId(userId, module);
   }
 
   @Get('perfect-plain/:userId')
-  async getAPerfectPlainByUserId(@Param('userId') userId: string) {
+  @UseGuards(OwnershipGuard)
+  async getPerfectPlainByUserId(@Param('userId') userId: string) {
     return await this.service.findPerfectPlainByUserId(userId);
   }
 
@@ -75,6 +70,6 @@ export class SupplyController {
     @Param('userId') userId: string,
     @Param('pillar') pillar: string,
   ) {
-    return await this.service.checkSupplyByUserId(userId, pillar);
+    return await this.service.checkSupplyByUserIdAndPillar(userId, pillar);
   }
 }

@@ -3,12 +3,9 @@ import {
   Get,
   Post,
   Body,
-  Patch,
   Param,
   Delete,
   UseGuards,
-  UnauthorizedException,
-  Query,
 } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
@@ -23,22 +20,10 @@ import { Ownership } from 'src/decorators/ownership.decorator';
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
-  // @Post()
-  // @Role(Roles.ADMIN, Roles.MANAGER)
-  // create(@Body() createUserDto: CreateUserDto) {
-  //   return this.usersService.create(createUserDto);
-  // }
-
   @Post('maestra')
   @Role(Roles.ADMIN)
   createMaestra(@Body() data: CreateUserDto) {
     return this.usersService.createMaestra(data);
-  }
-
-  @Get()
-  @Role(Roles.ADMIN)
-  findAll() {
-    return this.usersService.findAll();
   }
 
   @Get('active/:orderBy/:direction')
@@ -53,7 +38,7 @@ export class UsersController {
   @Get('me/:id')
   async findMe(
     @Ownership('id') idFromToken: string,
-    @Ownership('role') rolesFromToken: string[],
+    @Ownership('roles') rolesFromToken: string[],
     @Param('id') idFromUrl: string,
   ) {
     return await this.usersService.findMe(

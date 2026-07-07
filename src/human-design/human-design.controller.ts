@@ -15,6 +15,7 @@ import { Role } from '../decorators/role.decorator';
 import { Roles } from '../enums/role.enum';
 import { AuthGuard } from '../auth/guards/auth.guard';
 import { RoleGuard } from '../auth/guards/role.guard';
+import { OwnershipGuard } from '../auth/guards/ownership.guard';
 
 @Controller('human-design')
 @UseGuards(AuthGuard, RoleGuard)
@@ -27,12 +28,6 @@ export class HumanDesignController {
     return await this.humanDesignService.create(createHumanDesignDto);
   }
 
-  @Get()
-  @Role(Roles.ADMIN)
-  findAll() {
-    return this.humanDesignService.findAll();
-  }
-
   @Get(':id')
   @Role(Roles.ADMIN, Roles.MANAGER)
   async findOne(@Param('id') id: string) {
@@ -40,22 +35,23 @@ export class HumanDesignController {
   }
 
   @Get('user/:userId')
+  @UseGuards(OwnershipGuard)
   async findOneByUser(@Param('userId') userId: string) {
     return await this.humanDesignService.findOneByUser(userId);
   }
 
   @Patch(':id')
   @Role(Roles.ADMIN)
-  update(
+  async update(
     @Param('id') id: string,
     @Body() updateHumanDesignDto: UpdateHumanDesignDto,
   ) {
-    return this.humanDesignService.update(+id, updateHumanDesignDto);
+    return await this.humanDesignService.update(id, updateHumanDesignDto);
   }
 
   @Delete(':id')
   @Role(Roles.ADMIN)
-  remove(@Param('id') id: string) {
-    return this.humanDesignService.remove(+id);
+  async remove(@Param('id') id: string) {
+    return await this.humanDesignService.remove(id);
   }
 }

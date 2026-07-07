@@ -15,6 +15,7 @@ import { Role } from '../decorators/role.decorator';
 import { Roles } from '../enums/role.enum';
 import { AuthGuard } from '../auth/guards/auth.guard';
 import { RoleGuard } from '../auth/guards/role.guard';
+import { OwnershipGuard } from '../auth/guards/ownership.guard';
 
 @Controller('astrology')
 @UseGuards(AuthGuard, RoleGuard)
@@ -27,13 +28,8 @@ export class AstrologyController {
     return await this.astrologyService.create(createAstrologyDto);
   }
 
-  @Get()
-  @Role(Roles.ADMIN)
-  findAll() {
-    return this.astrologyService.findAll();
-  }
-
   @Get('user/:userId')
+  @UseGuards(OwnershipGuard)
   async findOneByUser(@Param('userId') userId: string) {
     return await this.astrologyService.findOneByUser(userId);
   }

@@ -1,25 +1,44 @@
-import { IsEmail, IsString, ValidateNested } from 'class-validator';
+import { Type } from 'class-transformer';
+import {
+  IsEmail,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  ValidateNested,
+} from 'class-validator';
 
 export class UserLoginDto {
-    @IsEmail()
-    email!: string;
-    @IsString()
-    password!: string
-    @IsString()
-    roles!: string[]
+  @IsEmail()
+  email!: string;
+
+  @IsString()
+  @IsNotEmpty()
+  password!: string;
 }
 
 export class CreateUserDto {
+  @IsOptional()
   @IsString()
   id?: string;
+
   @IsString()
+  @IsNotEmpty()
   fullName!: string;
-  @ValidateNested({each: true})
+
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => UserLoginDto)
   login?: UserLoginDto;
+
   @IsString()
+  @IsNotEmpty()
   birthDate!: string;
+
   @IsString()
+  @IsNotEmpty()
   birthTime!: string;
+
   @IsString()
+  @IsNotEmpty()
   birthPlace!: string;
 }

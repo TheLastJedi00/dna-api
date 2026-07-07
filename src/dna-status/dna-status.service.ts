@@ -3,6 +3,9 @@ import { HumanDesignService } from '../human-design/human-design.service';
 import { DnaStatus } from './entities/dna-status.entity';
 import { NumerologyService } from 'src/numerology/numerology.service';
 import { AstrologyService } from 'src/astrology/astrology.service';
+import { CacheService } from 'src/redis/cache.service';
+
+const DNA_STATUS_TTL = 60; // 1min
 
 @Injectable()
 export class DnaStatusService {
@@ -10,15 +13,21 @@ export class DnaStatusService {
     private readonly humanDesignService: HumanDesignService,
     private readonly numerologyService: NumerologyService,
     private readonly astrologyService: AstrologyService,
+    private readonly cache: CacheService,
   ) {}
 
   async getStatusByUser(userId: string): Promise<DnaStatus> {
-    let status: DnaStatus;
-    const astro = await this.astrologyService.checkExistence(userId);
-    const hd = await this.humanDesignService.checkExistence(userId);
-    const num = await this.numerologyService.checkExistence(userId);
-    status = new DnaStatus(hd, num, astro);
-
-    return status;
+    return this.cache.getOrSet(
+      `dna-status:${userId}`,
+      DNA_STATUS_TTL,
+      async () => {
+        const [astro, hd, num] = await Promise.all([
+          this.astrologyService.checkExistence(userId),
+          this.humanDesignService.checkExistence(userId),
+          this.numerologyService.checkExistence(userId),
+        ]);
+        return new DnaStatus(hd, num, astro);
+      },
+    );
   }
 }

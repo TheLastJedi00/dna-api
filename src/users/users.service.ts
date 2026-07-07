@@ -4,7 +4,6 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { CreateUserDto } from './dto/create-user.dto';
-import { UpdateUserDto } from './dto/update-user.dto';
 import { UsersRepository } from './users.repository';
 import { User } from './entities/user.entity';
 import { AuthService } from 'src/auth/auth.service';
@@ -18,6 +17,10 @@ export class UsersService {
   ) {}
 
   async createMaestra(data: CreateUserDto) {
+    // Fonte de verdade de autorização = documento `auth` (as roles do JWT saem
+    // dele). `users.roles` é uma cópia denormalizada usada só para
+    // listagem/filtro (findAllActiveUsers) e é gravada atomicamente aqui com o
+    // mesmo valor. Qualquer futura mutação de role deve atualizar os dois.
     const roles = ['USER'];
     const userAuth = await this.auth.create(data.login, roles);
     const object = new User(data, userAuth.id, roles);
@@ -36,10 +39,6 @@ export class UsersService {
     return users;
   }
 
-  findAll() {
-    return `This action returns all users`;
-  }
-
   async findOne(id: string) {
     const user = await this.repository.findById(id);
     if (!user) {
@@ -55,11 +54,11 @@ export class UsersService {
     rolesFromToken: string[],
     idFromUrl: string,
   ) {
-    if (
-      idFromToken !== idFromUrl &&
-      !rolesFromToken.includes(Roles.MANAGER) &&
-      !rolesFromToken.includes(Roles.ADMIN)
-    ) {
+    const isPrivileged =
+      rolesFromToken?.some(
+        (role) => role === Roles.ADMIN || role === Roles.MANAGER,
+      ) ?? false;
+    if (idFromToken !== idFromUrl && !isPrivileged) {
       throw new UnauthorizedException(
         'Impossível consultar dados de outro usuário.',
       );
@@ -71,10 +70,6 @@ export class UsersService {
       );
     }
     return user;
-  }
-
-  update(id: number, updateUserDto: UpdateUserDto) {
-    return `This action updates a #${id} user`;
   }
 
   async disable(id: string) {

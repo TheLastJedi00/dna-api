@@ -6,10 +6,17 @@ import { AuthGuard } from './guards/auth.guard';
 import { BcryptService } from './bcrypt.service';
 import { JwtModule } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
+import { RefreshTokenStore } from './refresh-token.store';
 
 @Module({
   controllers: [AuthController],
-  providers: [AuthService, AuthRepository, AuthGuard, BcryptService],
+  providers: [
+    AuthService,
+    AuthRepository,
+    AuthGuard,
+    BcryptService,
+    RefreshTokenStore,
+  ],
   exports: [AuthService],
   imports: [JwtModule.registerAsync({
     global: true,
@@ -17,7 +24,10 @@ import { ConfigService } from '@nestjs/config';
     useFactory:  (configService: ConfigService) => {
       return {
         secret: configService.get<string>('JWT_SECRET'),
-        signOptions: {expiresIn: '3h'}
+        signOptions: {
+          expiresIn: (configService.get<string>('JWT_ACCESS_EXPIRES') ??
+            '15m') as any,
+        },
       }
     },
   })]
