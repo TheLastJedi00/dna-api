@@ -89,10 +89,7 @@ export class UsersController {
 
   @Patch(':id')
   @Role(Roles.ADMIN, Roles.MANAGER)
-  async updateUser(
-    @Param('id') userId: string,
-    @Body() data: UpdateUserDto,
-  ) {
+  async updateUser(@Param('id') userId: string, @Body() data: UpdateUserDto) {
     return await this.usersService.update(userId, data);
   }
 }

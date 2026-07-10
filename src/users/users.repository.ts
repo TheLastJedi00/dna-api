@@ -43,9 +43,7 @@ export class UsersRepository {
    * (em memória), evitando exigir índice composto. Adequado ao volume esperado.
    */
   async findAllWithRole(role: string): Promise<User[]> {
-    const snap = await this.db
-      .where('roles', 'array-contains', role)
-      .get();
+    const snap = await this.db.where('roles', 'array-contains', role).get();
 
     if (snap.empty) {
       return [];

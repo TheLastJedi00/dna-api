@@ -143,7 +143,10 @@ describe('UsersService — CRUD de Maestras', () => {
         direction: 'asc',
         name: 'ANA',
       });
-      expect(res.items.map((u) => u.fullName)).toEqual(['Ana Paula', 'Mariana']);
+      expect(res.items.map((u) => u.fullName)).toEqual([
+        'Ana Paula',
+        'Mariana',
+      ]);
     });
 
     it('direção inválida lança BadRequest', async () => {
@@ -190,9 +193,9 @@ describe('UsersService — CRUD de Maestras', () => {
 
     it('404 quando não existe', async () => {
       repo.findById.mockResolvedValue(null);
-      await expect(service.update('x', { fullName: 'y' })).rejects.toBeInstanceOf(
-        NotFoundException,
-      );
+      await expect(
+        service.update('x', { fullName: 'y' }),
+      ).rejects.toBeInstanceOf(NotFoundException);
     });
   });
 });
