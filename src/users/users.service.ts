@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { UserStatusFilter } from './dto/list-users-query.dto';
 import { UsersRepository } from './users.repository';
 import { User } from './entities/user.entity';
 import { AuthService } from 'src/auth/auth.service';
@@ -39,6 +40,8 @@ export class UsersService {
     direction: string;
     page?: number;
     pageSize?: number;
+    name?: string;
+    status?: UserStatusFilter;
   }) {
     const { orderBy, direction } = options;
     if (direction !== 'asc' && direction !== 'desc') {
@@ -46,16 +49,29 @@ export class UsersService {
     }
     const page = options.page ?? 1;
     const pageSize = options.pageSize ?? 10;
+    const status = options.status ?? 'active';
+    const nameQuery = options.name?.trim().toLowerCase();
 
     const all = await this.repository.findAllWithRole(Roles.USER);
-    const active = all.filter((user) => user.isActive);
-    const sorted = this.sortUsers(active, orderBy, direction);
+    const filtered = all
+      .filter((user) => this.matchesStatus(user, status))
+      .filter(
+        (user) =>
+          !nameQuery || user.fullName?.toLowerCase().includes(nameQuery),
+      );
+    const sorted = this.sortUsers(filtered, orderBy, direction);
 
     const total = sorted.length;
     const start = (page - 1) * pageSize;
     const items = sorted.slice(start, start + pageSize);
 
     return { items, total, page, pageSize };
+  }
+
+  private matchesStatus(user: User, status: UserStatusFilter): boolean {
+    if (status === 'all') return true;
+    if (status === 'inactive') return !user.isActive;
+    return user.isActive;
   }
 
   private sortUsers(users: User[], orderBy: string, direction: string): User[] {
