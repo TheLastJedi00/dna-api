@@ -5,12 +5,16 @@ import {
   Patch,
   Body,
   Param,
+  Query,
+  Res,
   Delete,
   UseGuards,
 } from '@nestjs/common';
+import type { Response } from 'express';
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { ListUsersQueryDto } from './dto/list-users-query.dto';
 import { AuthGuard } from 'src/auth/guards/auth.guard';
 import { RoleGuard } from 'src/auth/guards/role.guard';
 import { Role } from '../decorators/role.decorator';
@@ -28,13 +32,28 @@ export class UsersController {
     return this.usersService.createMaestra(data);
   }
 
+  // Paginação/busca/status vêm por query string (?page&pageSize&name&status);
+  // o corpo segue como array de itens (compatível com o consumidor atual) e os
+  // metadados de paginação vão nos headers X-*.
   @Get('active/:orderBy/:direction')
   @Role(Roles.ADMIN, Roles.MANAGER)
   async findAllActiveUsers(
     @Param('orderBy') orderBy: string = 'fullName',
     @Param('direction') direction: string = 'asc',
+    @Query() query: ListUsersQueryDto,
+    @Res({ passthrough: true }) res: Response,
   ) {
-    return await this.usersService.findAllActiveUsers(orderBy, direction);
+    const { items, total, page, pageSize } =
+      await this.usersService.findAllActiveUsers({
+        orderBy,
+        direction,
+        ...query,
+      });
+    res.setHeader('X-Total-Count', total);
+    res.setHeader('X-Page', page);
+    res.setHeader('X-Page-Size', pageSize);
+    res.setHeader('X-Total-Pages', Math.max(1, Math.ceil(total / pageSize)));
+    return items;
   }
 
   @Get('me/:id')
