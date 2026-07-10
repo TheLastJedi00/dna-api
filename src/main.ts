@@ -14,6 +14,7 @@ async function bootstrap() {
   app.enableCors({
     origin: origin ? [origin] : false,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+    exposedHeaders: ['X-Total-Count', 'X-Page', 'X-Page-Size', 'X-Total-Pages'],
   });
   app.useGlobalPipes(
     new ValidationPipe({

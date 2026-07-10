@@ -1,9 +1,12 @@
 import {
+  BadRequestException,
   Injectable,
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
 import { CreateUserDto } from './dto/create-user.dto';
+import { UpdateUserDto } from './dto/update-user.dto';
+import { UserStatusFilter } from './dto/list-users-query.dto';
 import { UsersRepository } from './users.repository';
 import { User } from './entities/user.entity';
 import { AuthService } from 'src/auth/auth.service';
@@ -27,16 +30,60 @@ export class UsersService {
     await this.repository.create(object);
   }
 
-  async findAllActiveUsers(orderBy: string, direction: string) {
-    const validDirections = ['asc', 'desc'];
-    if (!validDirections.includes(direction)) {
-      throw new NotFoundException(
-        'Valor de ordem não existe, precisa ser "asc" ou "desc."',
-      );
+  /**
+   * Listagem paginada de Maestras (role USER). Busca os candidatos no
+   * repositório e aplica filtro de status, ordenação e paginação em memória
+   * (volume esperado é pequeno; evita índice composto no Firestore).
+   */
+  async findAllActiveUsers(options: {
+    orderBy: string;
+    direction: string;
+    page?: number;
+    pageSize?: number;
+    name?: string;
+    status?: UserStatusFilter;
+  }) {
+    const { orderBy, direction } = options;
+    if (direction !== 'asc' && direction !== 'desc') {
+      throw new BadRequestException('Direção inválida: use "asc" ou "desc".');
     }
-    const users = await this.repository.findAllActiveUsers(orderBy, direction);
+    const page = options.page ?? 1;
+    const pageSize = options.pageSize ?? 10;
+    const status = options.status ?? 'active';
+    const nameQuery = options.name?.trim().toLowerCase();
 
-    return users;
+    const all = await this.repository.findAllWithRole(Roles.USER);
+    const filtered = all
+      .filter((user) => this.matchesStatus(user, status))
+      .filter(
+        (user) =>
+          !nameQuery || user.fullName?.toLowerCase().includes(nameQuery),
+      );
+    const sorted = this.sortUsers(filtered, orderBy, direction);
+
+    const total = sorted.length;
+    const start = (page - 1) * pageSize;
+    const items = sorted.slice(start, start + pageSize);
+
+    return { items, total, page, pageSize };
+  }
+
+  private matchesStatus(user: User, status: UserStatusFilter): boolean {
+    if (status === 'all') return true;
+    if (status === 'inactive') return !user.isActive;
+    return user.isActive;
+  }
+
+  private sortUsers(users: User[], orderBy: string, direction: string): User[] {
+    const dir = direction === 'desc' ? -1 : 1;
+    return [...users].sort((a, b) => {
+      const av = (a as unknown as Record<string, unknown>)[orderBy];
+      const bv = (b as unknown as Record<string, unknown>)[orderBy];
+      if (av == null && bv == null) return 0;
+      if (av == null) return 1;
+      if (bv == null) return -1;
+      return String(av).localeCompare(String(bv)) * dir;
+    });
   }
 
   async findOne(id: string) {
@@ -83,5 +130,23 @@ export class UsersService {
       throw new NotFoundException(`Usuário com o ID ${id} não encontrado`);
     }
     return updated;
+  }
+
+  async reactivate(id: string) {
+    const user = await this.repository.findById(id);
+    if (!user) {
+      throw new NotFoundException(`Usuário com o ID ${id} não encontrado`);
+    }
+    user.enable();
+    return await this.repository.update(id, user);
+  }
+
+  async update(id: string, data: UpdateUserDto) {
+    const user = await this.repository.findById(id);
+    if (!user) {
+      throw new NotFoundException(`Usuário com o ID ${id} não encontrado`);
+    }
+    user.applyUpdate(data);
+    return await this.repository.update(id, user);
   }
 }
