@@ -73,7 +73,12 @@ export class UsersRepository {
     return users;
   }
 
-  async update(id: string, user: User) {
+  /**
+   * Persiste o estado completo da entidade (sobrescreve o documento) e devolve
+   * a instância gravada. `await` garantido antes do retorno; nenhum campo é
+   * descartado porque `user` é a entidade completa carregada em `findById`.
+   */
+  async update(id: string, user: User): Promise<User> {
     await this.db.doc(id).set(instanceToPlain(user));
     return user;
   }
