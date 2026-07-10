@@ -27,6 +27,13 @@ export class User {
     this.isActive = true;
   }
 
+  applyUpdate(data: Partial<Pick<User, 'fullName' | 'birthDate' | 'birthTime' | 'birthPlace'>>) {
+    if (data.fullName !== undefined) this.fullName = data.fullName;
+    if (data.birthDate !== undefined) this.birthDate = data.birthDate;
+    if (data.birthTime !== undefined) this.birthTime = data.birthTime;
+    if (data.birthPlace !== undefined) this.birthPlace = data.birthPlace;
+  }
+
   createDtoToEntity(dto: CreateUserDto, id: string) {
     this.id = id;
     this.fullName = dto.fullName;

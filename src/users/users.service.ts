@@ -4,6 +4,7 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { CreateUserDto } from './dto/create-user.dto';
+import { UpdateUserDto } from './dto/update-user.dto';
 import { UsersRepository } from './users.repository';
 import { User } from './entities/user.entity';
 import { AuthService } from 'src/auth/auth.service';
@@ -91,6 +92,15 @@ export class UsersService {
       throw new NotFoundException(`Usuário com o ID ${id} não encontrado`);
     }
     user.enable();
+    return await this.repository.update(id, user);
+  }
+
+  async update(id: string, data: UpdateUserDto) {
+    const user = await this.repository.findById(id);
+    if (!user) {
+      throw new NotFoundException(`Usuário com o ID ${id} não encontrado`);
+    }
+    user.applyUpdate(data);
     return await this.repository.update(id, user);
   }
 }

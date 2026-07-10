@@ -10,6 +10,7 @@ import {
 } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
+import { UpdateUserDto } from './dto/update-user.dto';
 import { AuthGuard } from 'src/auth/guards/auth.guard';
 import { RoleGuard } from 'src/auth/guards/role.guard';
 import { Role } from '../decorators/role.decorator';
@@ -65,5 +66,14 @@ export class UsersController {
   @Role(Roles.ADMIN, Roles.MANAGER)
   async reactivateUser(@Param('id') userId: string) {
     return await this.usersService.reactivate(userId);
+  }
+
+  @Patch(':id')
+  @Role(Roles.ADMIN, Roles.MANAGER)
+  async updateUser(
+    @Param('id') userId: string,
+    @Body() data: UpdateUserDto,
+  ) {
+    return await this.usersService.update(userId, data);
   }
 }
