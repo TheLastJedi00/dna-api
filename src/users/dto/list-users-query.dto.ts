@@ -1,11 +1,13 @@
 import { Type } from 'class-transformer';
-import { IsInt, IsOptional, Max, Min } from 'class-validator';
+import { IsIn, IsInt, IsOptional, IsString, Max, Min } from 'class-validator';
+
+export type UserStatusFilter = 'active' | 'inactive' | 'all';
 
 /**
  * Query da listagem de Maestras. `page`/`pageSize` chegam como string na URL;
  * `@Type(() => Number)` + `transform` do ValidationPipe global convertem para
  * número antes de validar. Defaults aplicados quando o parâmetro é omitido.
- * (busca por nome e filtro de status entram na fase 3, neste mesmo DTO.)
+ * `name` faz busca parcial (case-insensitive) e `status` filtra por situação.
  */
 export class ListUsersQueryDto {
   @IsOptional()
@@ -20,4 +22,12 @@ export class ListUsersQueryDto {
   @Min(1)
   @Max(100)
   pageSize?: number = 10;
+
+  @IsOptional()
+  @IsString()
+  name?: string;
+
+  @IsOptional()
+  @IsIn(['active', 'inactive', 'all'])
+  status?: UserStatusFilter = 'active';
 }
