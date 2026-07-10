@@ -23,6 +23,10 @@ export class User {
     this.isActive = false;
   }
 
+  enable() {
+    this.isActive = true;
+  }
+
   createDtoToEntity(dto: CreateUserDto, id: string) {
     this.id = id;
     this.fullName = dto.fullName;
