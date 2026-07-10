@@ -55,6 +55,28 @@ Veja `.env.example`. Destaques:
 - `POST /auth/refresh` — renova o par a partir do refresh (rotação; nega se revogado).
 - `POST /auth/logout` — revoga o refresh informado.
 
+## Maestras (CRUD)
+
+Gestão das Maestras (role `USER`), restrita a `ADMIN`/`MANAGER`. Desativação é
+**soft delete** (`isActive`), permitindo reativar.
+
+- `POST /users/maestra` — cria uma Maestra (`ADMIN`).
+- `GET /users/active/:orderBy/:direction` — lista **paginada** com busca e filtro.
+  Query params:
+  | Param | Default | Descrição |
+  |-------|---------|-----------|
+  | `page` | `1` | Página (>= 1) |
+  | `pageSize` | `10` | Itens por página (1..100) |
+  | `name` | — | Busca parcial por nome (case-insensitive) |
+  | `status` | `active` | `active` \| `inactive` \| `all` |
+
+  O corpo é o **array de itens** da página; os metadados vão nos headers
+  `X-Total-Count`, `X-Page`, `X-Page-Size`, `X-Total-Pages` (expostos no CORS).
+- `GET /users/:id` — detalhe (`ADMIN`/`MANAGER`).
+- `PATCH /users/:id` — edita o perfil (`fullName`, `birthDate`, `birthTime`, `birthPlace`).
+- `PATCH /users/:id/reactivate` — reativa (soft delete reverso).
+- `DELETE /users/:id` — desativa (soft delete).
+
 ## Plano Perfeito
 
 Pilar `perfect-plain` (módulo único `plano-perfeito`) que **reaproveita os dados dos 3
