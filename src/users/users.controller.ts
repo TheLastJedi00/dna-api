@@ -2,6 +2,7 @@ import {
   Controller,
   Get,
   Post,
+  Patch,
   Body,
   Param,
   Delete,
@@ -58,5 +59,11 @@ export class UsersController {
   @Role(Roles.ADMIN, Roles.MANAGER)
   async disableUser(@Param('id') userId: string) {
     return await this.usersService.disable(userId);
+  }
+
+  @Patch(':id/reactivate')
+  @Role(Roles.ADMIN, Roles.MANAGER)
+  async reactivateUser(@Param('id') userId: string) {
+    return await this.usersService.reactivate(userId);
   }
 }
