@@ -84,4 +84,13 @@ export class UsersService {
     }
     return updated;
   }
+
+  async reactivate(id: string) {
+    const user = await this.repository.findById(id);
+    if (!user) {
+      throw new NotFoundException(`Usuário com o ID ${id} não encontrado`);
+    }
+    user.enable();
+    return await this.repository.update(id, user);
+  }
 }
