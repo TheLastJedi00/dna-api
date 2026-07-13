@@ -9,8 +9,8 @@ import { UpdateUserDto } from './dto/update-user.dto';
 import { UserStatusFilter } from './dto/list-users-query.dto';
 import { UsersRepository } from './users.repository';
 import { User } from './entities/user.entity';
-import { AuthService } from 'src/auth/auth.service';
-import { Roles } from 'src/enums/role.enum';
+import { AuthService } from '../auth/auth.service';
+import { Roles } from '../enums/role.enum';
 
 @Injectable()
 export class UsersService {

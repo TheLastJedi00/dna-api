@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PromptsRepository } from './prompts.repository';
 import { Prompt } from './entities/prompt.entity';
-import { CacheService } from 'src/redis/cache.service';
+import { CacheService } from '../redis/cache.service';
 
 const PROMPT_TTL = 30 * 60; // 30min
 

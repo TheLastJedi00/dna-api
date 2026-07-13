@@ -15,11 +15,11 @@ import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { ListUsersQueryDto } from './dto/list-users-query.dto';
-import { AuthGuard } from 'src/auth/guards/auth.guard';
-import { RoleGuard } from 'src/auth/guards/role.guard';
+import { AuthGuard } from '../auth/guards/auth.guard';
+import { RoleGuard } from '../auth/guards/role.guard';
 import { Role } from '../decorators/role.decorator';
 import { Roles } from '../enums/role.enum';
-import { Ownership } from 'src/decorators/ownership.decorator';
+import { Ownership } from '../decorators/ownership.decorator';
 
 @Controller('users')
 @UseGuards(AuthGuard, RoleGuard)
