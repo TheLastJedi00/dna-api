@@ -30,17 +30,26 @@ export class UsersRepository {
     if (data === undefined) {
       return null;
     }
-    // Preserva o documento completo, incluindo roles e isActive.
-    const user = new User(data as CreateUserDto, id, data.roles);
-    user.isActive = data.isActive ?? true;
-    return user;
+    return this.toEntity(data, id);
+  }
+
+  /** Devolve apenas os documentos cujos ids foram pedidos (ignora inexistentes). */
+  async findByIds(ids: string[]): Promise<User[]> {
+    if (ids.length === 0) {
+      return [];
+    }
+    const snaps = await Promise.all(ids.map((id) => this.db.doc(id).get()));
+    return snaps
+      .filter((snap) => snap.exists && snap.data() !== undefined)
+      .map((snap) => this.toEntity(snap.data()!, snap.id));
   }
 
   /**
-   * Devolve todas as Maestras com a role informada como entidades completas.
-   * Consulta apenas por `roles array-contains <role>` (índice de array
-   * automático do Firestore); status/busca/ordenação/paginação ficam no service
-   * (em memória), evitando exigir índice composto. Adequado ao volume esperado.
+   * Devolve todos os perfis com a role informada (Maestras = USER, Analistas =
+   * ANALYST) como entidades completas. Consulta apenas por `roles
+   * array-contains <role>` (índice de array automático do Firestore);
+   * status/busca/ordenação/paginação ficam no service (em memória), evitando
+   * exigir índice composto. Adequado ao volume esperado.
    */
   async findAllWithRole(role: string): Promise<User[]> {
     const snap = await this.db.where('roles', 'array-contains', role).get();
@@ -49,12 +58,20 @@ export class UsersRepository {
       return [];
     }
 
-    return snap.docs.map((s) => {
-      const data = s.data();
-      const user = new User(data as CreateUserDto, data.id, data.roles);
-      user.isActive = data.isActive ?? true;
-      return user;
-    });
+    return snap.docs.map((s) => this.toEntity(s.data(), s.id));
+  }
+
+  /**
+   * Monta a entidade a partir do documento cru, sem descartar campos
+   * (`roles`, `isActive`, `createdBy`, `email`). Usa o id do próprio documento,
+   * que é a chave real — o campo `id` do payload pode não existir.
+   */
+  private toEntity(data: admin.firestore.DocumentData, id: string): User {
+    const user = new User(data as CreateUserDto, id, data.roles);
+    user.isActive = data.isActive ?? true;
+    user.createdBy = data.createdBy;
+    user.email = data.email;
+    return user;
   }
 
   /**
