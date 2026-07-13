@@ -1,6 +1,26 @@
-import { BadRequestException, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  NotFoundException,
+} from '@nestjs/common';
 import { UsersService } from './users.service';
 import { User } from './entities/user.entity';
+
+/** Maestra cadastrada por `createdBy` — o vínculo que governa a visibilidade. */
+function maestraOf(fullName: string, createdBy?: string): User {
+  const maestra = new User(
+    {
+      fullName,
+      birthDate: '2000-01-01',
+      birthTime: '00:00',
+      birthPlace: 'Floripa-SC',
+      createdBy,
+    },
+    fullName,
+    ['USER'],
+  );
+  return maestra;
+}
 
 /**
  * Cobre a lógica nova do CRUD de Maestras: listagem paginada com busca por nome
@@ -169,6 +189,146 @@ describe('UsersService — CRUD de Maestras', () => {
           direction: 'up',
         }),
       ).rejects.toBeInstanceOf(BadRequestException);
+    });
+  });
+
+  describe('createMaestra (vínculo com o criador)', () => {
+    it('grava createdBy com o id de quem cadastrou, não do corpo', async () => {
+      auth.create.mockResolvedValue({ id: 'maestra-1' });
+
+      await service.createMaestra(
+        {
+          fullName: 'Ana',
+          birthDate: '2000-01-01',
+          birthTime: '00:00',
+          birthPlace: 'Floripa-SC',
+          login: { email: 'ana@dna.com', password: 'x' },
+        } as any,
+        'analyst-1',
+      );
+
+      const persisted = repo.create.mock.calls[0][0] as User;
+      expect(persisted.createdBy).toBe('analyst-1');
+      expect(persisted.roles).toEqual(['USER']);
+    });
+  });
+
+  describe('visibilidade da listagem por role', () => {
+    beforeEach(() => {
+      repo.findAllWithRole.mockResolvedValue([
+        maestraOf('Ana', 'analyst-1'),
+        maestraOf('Bruna', 'analyst-2'),
+        maestraOf('Carla', undefined), // legada, sem vínculo
+      ]);
+    });
+
+    it('ANALYST vê apenas as Maestras que cadastrou', async () => {
+      const res = await service.findAllActiveUsers({
+        orderBy: 'fullName',
+        direction: 'asc',
+        requesterId: 'analyst-1',
+        requesterRoles: ['ANALYST'],
+      });
+
+      expect(res.items.map((u) => u.fullName)).toEqual(['Ana']);
+      expect(res.total).toBe(1);
+    });
+
+    it('MANAGER vê apenas as que cadastrou (não a carteira do Analista)', async () => {
+      const res = await service.findAllActiveUsers({
+        orderBy: 'fullName',
+        direction: 'asc',
+        requesterId: 'manager-1',
+        requesterRoles: ['MANAGER'],
+      });
+
+      expect(res.items).toEqual([]);
+    });
+
+    it('ADMIN é super-usuário e vê todas, inclusive as legadas sem vínculo', async () => {
+      const res = await service.findAllActiveUsers({
+        ...admin,
+        orderBy: 'fullName',
+        direction: 'asc',
+      });
+
+      expect(res.items.map((u) => u.fullName)).toEqual([
+        'Ana',
+        'Bruna',
+        'Carla',
+      ]);
+    });
+
+    it('resolve createdByName pelo perfil do criador', async () => {
+      repo.findByIds.mockResolvedValue([
+        new User({ fullName: 'Bia Analista' }, 'analyst-1', ['ANALYST']),
+      ]);
+
+      const res = await service.findAllActiveUsers({
+        orderBy: 'fullName',
+        direction: 'asc',
+        requesterId: 'analyst-1',
+        requesterRoles: ['ANALYST'],
+      });
+
+      expect(res.items[0].createdByName).toBe('Bia Analista');
+    });
+
+    it('sem perfil, cai para o e-mail do auth (caso do Manager)', async () => {
+      repo.findAllWithRole.mockResolvedValue([maestraOf('Ana', 'manager-1')]);
+      repo.findByIds.mockResolvedValue([]);
+      auth.findEmailById.mockResolvedValue('gestora@dna.com');
+
+      const res = await service.findAllActiveUsers({
+        orderBy: 'fullName',
+        direction: 'asc',
+        requesterId: 'manager-1',
+        requesterRoles: ['MANAGER'],
+      });
+
+      expect(res.items[0].createdByName).toBe('gestora@dna.com');
+    });
+  });
+
+  describe('posse nas rotas de gestão', () => {
+    it('ANALYST não edita Maestra de outro analista (403)', async () => {
+      repo.findById.mockResolvedValue(maestraOf('Bruna', 'analyst-2'));
+
+      await expect(
+        service.update(
+          'Bruna',
+          { fullName: 'Hackeada' },
+          { id: 'analyst-1', roles: ['ANALYST'] },
+        ),
+      ).rejects.toBeInstanceOf(ForbiddenException);
+      expect(repo.update).not.toHaveBeenCalled();
+    });
+
+    it('ANALYST não desativa Maestra de outro analista (403)', async () => {
+      repo.findById.mockResolvedValue(maestraOf('Bruna', 'analyst-2'));
+
+      await expect(
+        service.disable('Bruna', { id: 'analyst-1', roles: ['ANALYST'] }),
+      ).rejects.toBeInstanceOf(ForbiddenException);
+      expect(repo.update).not.toHaveBeenCalled();
+    });
+
+    it('ANALYST gerencia a própria Maestra', async () => {
+      const maestra = maestraOf('Ana', 'analyst-1');
+      repo.findById.mockResolvedValue(maestra);
+
+      await service.disable('Ana', { id: 'analyst-1', roles: ['ANALYST'] });
+
+      expect(maestra.isActive).toBe(false);
+    });
+
+    it('ADMIN gerencia qualquer Maestra', async () => {
+      const maestra = maestraOf('Bruna', 'analyst-2');
+      repo.findById.mockResolvedValue(maestra);
+
+      await service.disable('Bruna', { id: 'admin-1', roles: ['ADMIN'] });
+
+      expect(maestra.isActive).toBe(false);
     });
   });
 
