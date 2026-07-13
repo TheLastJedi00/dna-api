@@ -26,21 +26,28 @@ import { Ownership } from '../decorators/ownership.decorator';
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
+  // O vínculo da Maestra com o criador sai do token (não do corpo): quem
+  // cadastra é sempre o usuário logado, seja Analista ou Manager.
   @Post('maestra')
-  @Role(Roles.ADMIN)
-  createMaestra(@Body() data: CreateUserDto) {
-    return this.usersService.createMaestra(data);
+  @Role(Roles.ADMIN, Roles.MANAGER, Roles.ANALYST)
+  createMaestra(
+    @Body() data: CreateUserDto,
+    @Ownership('id') creatorId: string,
+  ) {
+    return this.usersService.createMaestra(data, creatorId);
   }
 
   // Paginação/busca/status vêm por query string (?page&pageSize&name&status);
   // o corpo segue como array de itens (compatível com o consumidor atual) e os
   // metadados de paginação vão nos headers X-*.
   @Get('active/:orderBy/:direction')
-  @Role(Roles.ADMIN, Roles.MANAGER)
+  @Role(Roles.ADMIN, Roles.MANAGER, Roles.ANALYST)
   async findAllActiveUsers(
     @Param('orderBy') orderBy: string = 'fullName',
     @Param('direction') direction: string = 'asc',
     @Query() query: ListUsersQueryDto,
+    @Ownership('id') requesterId: string,
+    @Ownership('roles') requesterRoles: string[],
     @Res({ passthrough: true }) res: Response,
   ) {
     const { items, total, page, pageSize } =
@@ -48,6 +55,8 @@ export class UsersController {
         orderBy,
         direction,
         ...query,
+        requesterId,
+        requesterRoles,
       });
     res.setHeader('X-Total-Count', total);
     res.setHeader('X-Page', page);
@@ -69,27 +78,59 @@ export class UsersController {
     );
   }
 
+  // Rotas de gestão da Maestra: a role sozinha não basta — o service ainda
+  // valida a posse (createdBy), senão um Analista alcançaria a Maestra de
+  // outro pelo id. ADMIN segue como super-usuário.
   @Get(':id')
-  @Role(Roles.ADMIN, Roles.MANAGER)
-  findOne(@Param('id') id: string) {
-    return this.usersService.findOne(id);
+  @Role(Roles.ADMIN, Roles.MANAGER, Roles.ANALYST)
+  findOne(
+    @Param('id') id: string,
+    @Ownership('id') requesterId: string,
+    @Ownership('roles') requesterRoles: string[],
+  ) {
+    return this.usersService.findOneView(id, {
+      id: requesterId,
+      roles: requesterRoles,
+    });
   }
 
   @Delete(':id')
-  @Role(Roles.ADMIN, Roles.MANAGER)
-  async disableUser(@Param('id') userId: string) {
-    return await this.usersService.disable(userId);
+  @Role(Roles.ADMIN, Roles.MANAGER, Roles.ANALYST)
+  async disableUser(
+    @Param('id') userId: string,
+    @Ownership('id') requesterId: string,
+    @Ownership('roles') requesterRoles: string[],
+  ) {
+    return await this.usersService.disable(userId, {
+      id: requesterId,
+      roles: requesterRoles,
+    });
   }
 
   @Patch(':id/reactivate')
-  @Role(Roles.ADMIN, Roles.MANAGER)
-  async reactivateUser(@Param('id') userId: string) {
-    return await this.usersService.reactivate(userId);
+  @Role(Roles.ADMIN, Roles.MANAGER, Roles.ANALYST)
+  async reactivateUser(
+    @Param('id') userId: string,
+    @Ownership('id') requesterId: string,
+    @Ownership('roles') requesterRoles: string[],
+  ) {
+    return await this.usersService.reactivate(userId, {
+      id: requesterId,
+      roles: requesterRoles,
+    });
   }
 
   @Patch(':id')
-  @Role(Roles.ADMIN, Roles.MANAGER)
-  async updateUser(@Param('id') userId: string, @Body() data: UpdateUserDto) {
-    return await this.usersService.update(userId, data);
+  @Role(Roles.ADMIN, Roles.MANAGER, Roles.ANALYST)
+  async updateUser(
+    @Param('id') userId: string,
+    @Body() data: UpdateUserDto,
+    @Ownership('id') requesterId: string,
+    @Ownership('roles') requesterRoles: string[],
+  ) {
+    return await this.usersService.update(userId, data, {
+      id: requesterId,
+      roles: requesterRoles,
+    });
   }
 }

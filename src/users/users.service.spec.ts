@@ -21,24 +21,29 @@ function makeUser(fullName: string, isActive = true, id = fullName): User {
   return u;
 }
 
+/** Requisitante ADMIN: super-usuário, enxerga e gerencia todas as Maestras. */
+const admin = { requesterId: 'admin-1', requesterRoles: ['ADMIN'] };
+
 describe('UsersService — CRUD de Maestras', () => {
   let service: UsersService;
   let repo: {
     findAllWithRole: jest.Mock;
     findById: jest.Mock;
+    findByIds: jest.Mock;
     update: jest.Mock;
     create: jest.Mock;
   };
-  let auth: { create: jest.Mock };
+  let auth: { create: jest.Mock; findEmailById: jest.Mock };
 
   beforeEach(() => {
     repo = {
       findAllWithRole: jest.fn(),
       findById: jest.fn(),
+      findByIds: jest.fn().mockResolvedValue([]),
       update: jest.fn().mockImplementation((_id, u) => Promise.resolve(u)),
       create: jest.fn(),
     };
-    auth = { create: jest.fn() };
+    auth = { create: jest.fn(), findEmailById: jest.fn().mockResolvedValue(null) };
     service = new UsersService(repo as any, auth as any);
   });
 
@@ -50,6 +55,7 @@ describe('UsersService — CRUD de Maestras', () => {
         makeUser('Carla'),
       ]);
       const res = await service.findAllActiveUsers({
+        ...admin,
         orderBy: 'fullName',
         direction: 'asc',
         page: 1,
@@ -68,6 +74,7 @@ describe('UsersService — CRUD de Maestras', () => {
         makeUser('Carla'),
       ]);
       const res = await service.findAllActiveUsers({
+        ...admin,
         orderBy: 'fullName',
         direction: 'asc',
         page: 2,
@@ -83,6 +90,7 @@ describe('UsersService — CRUD de Maestras', () => {
         makeUser('Bruna'),
       ]);
       const res = await service.findAllActiveUsers({
+        ...admin,
         orderBy: 'fullName',
         direction: 'desc',
       });
@@ -99,6 +107,7 @@ describe('UsersService — CRUD de Maestras', () => {
         makeUser('Bruna', false),
       ]);
       const res = await service.findAllActiveUsers({
+        ...admin,
         orderBy: 'fullName',
         direction: 'asc',
       });
@@ -112,6 +121,7 @@ describe('UsersService — CRUD de Maestras', () => {
         makeUser('Bruna', false),
       ]);
       const res = await service.findAllActiveUsers({
+        ...admin,
         orderBy: 'fullName',
         direction: 'asc',
         status: 'inactive',
@@ -125,6 +135,7 @@ describe('UsersService — CRUD de Maestras', () => {
         makeUser('Bruna', false),
       ]);
       const res = await service.findAllActiveUsers({
+        ...admin,
         orderBy: 'fullName',
         direction: 'asc',
         status: 'all',
@@ -139,6 +150,7 @@ describe('UsersService — CRUD de Maestras', () => {
         makeUser('Mariana'),
       ]);
       const res = await service.findAllActiveUsers({
+        ...admin,
         orderBy: 'fullName',
         direction: 'asc',
         name: 'ANA',
@@ -151,7 +163,11 @@ describe('UsersService — CRUD de Maestras', () => {
 
     it('direção inválida lança BadRequest', async () => {
       await expect(
-        service.findAllActiveUsers({ orderBy: 'fullName', direction: 'up' }),
+        service.findAllActiveUsers({
+          ...admin,
+          orderBy: 'fullName',
+          direction: 'up',
+        }),
       ).rejects.toBeInstanceOf(BadRequestException);
     });
   });
