@@ -1,5 +1,4 @@
 import {
-  BadRequestException,
   ForbiddenException,
   Injectable,
   NotFoundException,
@@ -12,6 +11,7 @@ import { UsersRepository } from './users.repository';
 import { User } from './entities/user.entity';
 import { AuthService } from '../auth/auth.service';
 import { Roles } from '../enums/role.enum';
+import { applyListQuery, assertDirection } from '../common/list-query';
 
 /**
  * Maestra como sai na resposta: os dados do documento + o nome de quem a
@@ -65,32 +65,21 @@ export class UsersService {
     requesterId: string;
     requesterRoles: string[];
   }) {
-    const { orderBy, direction, requesterId, requesterRoles } = options;
-    if (direction !== 'asc' && direction !== 'desc') {
-      throw new BadRequestException('Direção inválida: use "asc" ou "desc".');
-    }
-    const page = options.page ?? 1;
-    const pageSize = options.pageSize ?? 10;
-    const status = options.status ?? 'active';
-    const nameQuery = options.name?.trim().toLowerCase();
+    const { requesterId, requesterRoles } = options;
+    assertDirection(options.direction);
 
     const all = await this.repository.findAllWithRole(Roles.USER);
-    const filtered = all
-      .filter((user) => this.isVisibleTo(user, requesterId, requesterRoles))
-      .filter((user) => this.matchesStatus(user, status))
-      .filter(
-        (user) =>
-          !nameQuery || user.fullName?.toLowerCase().includes(nameQuery),
-      );
-    const sorted = this.sortUsers(filtered, orderBy, direction);
-
-    const total = sorted.length;
-    const start = (page - 1) * pageSize;
-    const items = await this.withCreatorNames(
-      sorted.slice(start, start + pageSize),
+    const visible = all.filter((user) =>
+      this.isVisibleTo(user, requesterId, requesterRoles),
     );
+    const { items, total, page, pageSize } = applyListQuery(visible, options);
 
-    return { items, total, page, pageSize };
+    return {
+      items: await this.withCreatorNames(items),
+      total,
+      page,
+      pageSize,
+    };
   }
 
   /**
@@ -107,24 +96,6 @@ export class UsersService {
       return true;
     }
     return user.createdBy === requesterId;
-  }
-
-  private matchesStatus(user: User, status: UserStatusFilter): boolean {
-    if (status === 'all') return true;
-    if (status === 'inactive') return !user.isActive;
-    return user.isActive;
-  }
-
-  private sortUsers(users: User[], orderBy: string, direction: string): User[] {
-    const dir = direction === 'desc' ? -1 : 1;
-    return [...users].sort((a, b) => {
-      const av = (a as unknown as Record<string, unknown>)[orderBy];
-      const bv = (b as unknown as Record<string, unknown>)[orderBy];
-      if (av == null && bv == null) return 0;
-      if (av == null) return 1;
-      if (bv == null) return -1;
-      return String(av).localeCompare(String(bv)) * dir;
-    });
   }
 
   /**
