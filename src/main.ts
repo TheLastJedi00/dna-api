@@ -6,13 +6,16 @@ import 'dotenv/config';
 import './firebase/firebase.module';
 
 async function bootstrap() {
-  const origin = process.env.DEV_ORIGIN;
+  const origins = process.env.ALLOWED_ORIGINS
+    ?.split(',')
+    .map((o) => o.trim())
+    .filter(Boolean);
   const port = process.env.PORT ?? 8080;
 
   const app = await NestFactory.create(AppModule);
   app.use(helmet());
   app.enableCors({
-    origin: origin ? [origin] : false,
+    origin: origins?.length ? origins : false,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     exposedHeaders: ['X-Total-Count', 'X-Page', 'X-Page-Size', 'X-Total-Pages'],
   });
