@@ -46,7 +46,7 @@ Veja `.env.example`. Destaques:
 | `GEMINI_API_KEY` | sim | Chave da API do Gemini |
 | `GEMINI_MODEL` | não | Modelo do Gemini |
 | `REDIS_URL` | não | Habilita cache/rate-limit/allowlist de refresh |
-| `DEV_ORIGIN` | não | Origem liberada no CORS |
+| `ALLOWED_ORIGINS` | não | Origens permitidas no CORS (separar por vírgula) |
 | `PORT` | não (8080) | Porta HTTP |
 
 ## Autenticação
