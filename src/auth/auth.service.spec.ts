@@ -81,11 +81,14 @@ describe('AuthService — senha temporária', () => {
 
       await service.setTempPassword('u1', 'nova-provisoria');
 
-      expect(repo.update).toHaveBeenCalledWith('u1', {
-        password: 'hash(nova-provisoria)',
-        mustChangePassword: true,
-        tempPassword: 'nova-provisoria',
-      });
+      expect(repo.update).toHaveBeenCalledWith(
+        'u1',
+        expect.objectContaining({
+          password: 'hash(nova-provisoria)',
+          mustChangePassword: true,
+          tempPassword: 'nova-provisoria',
+        }),
+      );
     });
 
     it('404 quando as credenciais não existem', async () => {
@@ -106,6 +109,7 @@ describe('AuthService — senha temporária', () => {
         password: 'hash(definitiva)',
         mustChangePassword: false,
         tempPassword: null,
+        tempPasswordExpiresAt: null,
       });
     });
 
@@ -147,6 +151,98 @@ describe('AuthService — senha temporária', () => {
       });
 
       expect(res.mustChangePassword).toBe(false);
+    });
+  });
+
+  describe('expiração da senha provisória (72h)', () => {
+    const inThePast = new Date(Date.now() - 60_000).toISOString();
+    const inTheFuture = new Date(Date.now() + 60_000).toISOString();
+
+    it('o cadastro grava o prazo', async () => {
+      await service.create({ email: 'ana@dna.com', password: 'inicial' }, [
+        'USER',
+      ]);
+
+      const persisted = repo.create.mock.calls[0][0] as Auth;
+      const deadline = new Date(persisted.tempPasswordExpiresAt!).getTime();
+      const expected = Date.now() + 3 * 24 * 60 * 60 * 1000;
+      expect(Math.abs(deadline - expected)).toBeLessThan(5_000);
+    });
+
+    it('a redefinição pelo painel renova o prazo', async () => {
+      repo.findById.mockResolvedValue(credentialsOf());
+
+      await service.setTempPassword('u1', 'outra-provisoria');
+
+      const changes = repo.update.mock.calls[0][1];
+      expect(new Date(changes.tempPasswordExpiresAt).getTime()).toBeGreaterThan(
+        Date.now(),
+      );
+    });
+
+    it('senha provisória vencida NÃO loga, mesmo estando correta', async () => {
+      repo.findByEmail.mockResolvedValue(
+        credentialsOf({ tempPasswordExpiresAt: inThePast }),
+      );
+
+      await expect(
+        service.loginByCredentials({
+          email: 'ana@dna.com',
+          password: 'provisoria',
+        }),
+      ).rejects.toThrow('Senha temporária expirada. Peça uma nova ao seu gestor.');
+      // A comparação nem chega a acontecer: o prazo barra antes.
+      expect(bcrypt.compare).not.toHaveBeenCalled();
+    });
+
+    it('ao vencer, o texto plano é apagado do banco', async () => {
+      repo.findByEmail.mockResolvedValue(
+        credentialsOf({ tempPasswordExpiresAt: inThePast }),
+      );
+
+      await service
+        .loginByCredentials({ email: 'ana@dna.com', password: 'provisoria' })
+        .catch(() => undefined);
+
+      expect(repo.update).toHaveBeenCalledWith('u1', { tempPassword: null });
+    });
+
+    it('dentro do prazo, a senha provisória loga normalmente', async () => {
+      repo.findByEmail.mockResolvedValue(
+        credentialsOf({ tempPasswordExpiresAt: inTheFuture }),
+      );
+
+      const res = await service.loginByCredentials({
+        email: 'ana@dna.com',
+        password: 'provisoria',
+      });
+
+      expect(res.mustChangePassword).toBe(true);
+    });
+
+    it('senha definitiva não expira (sem prazo gravado)', async () => {
+      repo.findByEmail.mockResolvedValue(
+        credentialsOf({
+          mustChangePassword: false,
+          tempPassword: null,
+          tempPasswordExpiresAt: null,
+        }),
+      );
+
+      const res = await service.loginByCredentials({
+        email: 'ana@dna.com',
+        password: 'definitiva',
+      });
+
+      expect(res.mustChangePassword).toBe(false);
+    });
+
+    it('a troca definitiva limpa também o prazo', async () => {
+      repo.findById.mockResolvedValue(credentialsOf());
+
+      await service.changePassword('u1', 'definitiva');
+
+      expect(repo.update.mock.calls[0][1].tempPasswordExpiresAt).toBeNull();
     });
   });
 

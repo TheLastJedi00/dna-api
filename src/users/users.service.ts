@@ -10,6 +10,7 @@ import { UserStatusFilter } from './dto/list-users-query.dto';
 import { UsersRepository } from './users.repository';
 import { User } from './entities/user.entity';
 import { AuthService } from '../auth/auth.service';
+import { isTempPasswordExpired } from '../auth/entities/auth.entity';
 import { Roles } from '../enums/role.enum';
 import { applyListQuery, assertDirection } from '../common/list-query';
 
@@ -33,6 +34,8 @@ export type MaestraDetailView = Omit<MaestraView, 'email'> & {
   email: string | null;
   mustChangePassword: boolean;
   tempPassword: string | null;
+  /** Até quando a senha provisória vale (ISO 8601); `null` se não há uma. */
+  tempPasswordExpiresAt: string | null;
 };
 
 @Injectable()
@@ -178,11 +181,17 @@ export class UsersService {
     const user = await this.findOne(id, requester);
     const [view] = await this.withCreatorNames([user]);
     const credentials = await this.auth.findCredentialsById(id);
+    // Senha vencida não é senha: some da tela do gestor, e o botão de gerar
+    // outra volta a aparecer.
+    const expired = credentials ? isTempPasswordExpired(credentials) : false;
     return {
       ...view,
       email: credentials?.email ?? user.email ?? null,
       mustChangePassword: credentials?.mustChangePassword ?? false,
-      tempPassword: credentials?.tempPassword ?? null,
+      tempPassword: expired ? null : (credentials?.tempPassword ?? null),
+      tempPasswordExpiresAt: expired
+        ? null
+        : (credentials?.tempPasswordExpiresAt ?? null),
     };
   }
 

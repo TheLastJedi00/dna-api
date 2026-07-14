@@ -419,6 +419,24 @@ describe('UsersService — CRUD de Maestras', () => {
       expect(auth.findCredentialsById).not.toHaveBeenCalled();
     });
 
+    it('senha vencida some do detalhe — o gestor pode gerar outra', async () => {
+      repo.findById.mockResolvedValue(maestraOf('Ana', 'analyst-1'));
+      auth.findCredentialsById.mockResolvedValue({
+        email: 'ana@dna.com',
+        mustChangePassword: true,
+        tempPassword: 'provisoria',
+        tempPasswordExpiresAt: new Date(Date.now() - 60_000).toISOString(),
+      });
+
+      const view = await service.findOneView('Ana', {
+        id: 'analyst-1',
+        roles: ['ANALYST'],
+      });
+
+      expect(view.tempPassword).toBeNull();
+      expect(view.tempPasswordExpiresAt).toBeNull();
+    });
+
     it('ANALYST redefine a senha da própria Maestra', async () => {
       repo.findById.mockResolvedValue(maestraOf('Ana', 'analyst-1'));
 

@@ -68,7 +68,19 @@ O estado mora no doc `auth`:
 | Campo | Descrição |
 |-------|-----------|
 | `mustChangePassword` | `true` enquanto a senha em uso for provisória |
-| `tempPassword` | a senha provisória **em texto plano**; `null` após a troca |
+| `tempPassword` | a senha provisória **em texto plano**; `null` após a troca ou o vencimento |
+| `tempPasswordExpiresAt` | até quando ela vale (ISO 8601) — **72h** a partir da geração |
+
+### Prazo de 72h
+
+A senha provisória **vence em 3 dias**. Depois disso ela **deixa de logar** (mesmo estando
+correta: o prazo é checado antes da comparação) e o texto plano é apagado do banco na
+tentativa de login — limpeza preguiçosa, sem depender de agendador. Quem não entrou a tempo
+fica sem acesso até o gestor gerar outra senha; no painel, a senha vencida some do detalhe e
+o botão "Gerar senha temporária" volta a aparecer.
+
+Sem o prazo, a senha de quem nunca fez o primeiro acesso ficaria em claro no banco para
+sempre. Registros anteriores a este campo (sem `tempPasswordExpiresAt`) não expiram.
 
 - `PATCH /users/:id/temp-password` (`ADMIN`/`MANAGER`/`ANALYST`, **com posse**) e
   `PATCH /analysts/:id/temp-password` (`ADMIN`/`MANAGER`) — o gestor digita uma senha

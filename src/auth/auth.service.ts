@@ -6,7 +6,11 @@ import {
 } from '@nestjs/common';
 import { randomUUID } from 'crypto';
 import { AuthRepository } from './auth.repository';
-import { Auth } from './entities/auth.entity';
+import {
+  Auth,
+  isTempPasswordExpired,
+  TEMP_PASSWORD_TTL_MS,
+} from './entities/auth.entity';
 import { BcryptService } from './bcrypt.service';
 import { UserLoginDto } from '../users/dto/create-user.dto';
 import { JwtService } from '@nestjs/jwt';
@@ -43,9 +47,15 @@ export class AuthService {
       roles: roles,
       mustChangePassword: true,
       tempPassword: data.password,
+      tempPasswordExpiresAt: this.tempPasswordDeadline(),
     });
     const created = await this.repository.create(auth);
     return created;
+  }
+
+  /** Prazo da senha provisória a partir de agora (ISO 8601). */
+  private tempPasswordDeadline(): string {
+    return new Date(Date.now() + TEMP_PASSWORD_TTL_MS).toISOString();
   }
 
   /**
@@ -61,6 +71,7 @@ export class AuthService {
       password: await this.bcyptService.hash(password),
       mustChangePassword: true,
       tempPassword: password,
+      tempPasswordExpiresAt: this.tempPasswordDeadline(),
     });
   }
 
@@ -79,6 +90,7 @@ export class AuthService {
       password: await this.bcyptService.hash(newPassword),
       mustChangePassword: false,
       tempPassword: null,
+      tempPasswordExpiresAt: null,
     });
     const payload = new JwtPayload({
       id: auth.id,
@@ -107,6 +119,15 @@ export class AuthService {
     const userData = await this.repository.findByEmail(credentials.email);
     if (!userData) {
       throw new UnauthorizedException('Email não cadastrado.');
+    }
+    // Prazo vencido: a senha provisória para de logar (mesmo estando correta) e o
+    // texto plano é apagado aqui mesmo — é a limpeza preguiçosa que evita depender
+    // de um agendador. O acesso volta quando o gestor gerar outra senha.
+    if (isTempPasswordExpired(userData)) {
+      await this.repository.update(userData.id, { tempPassword: null });
+      throw new UnauthorizedException(
+        'Senha temporária expirada. Peça uma nova ao seu gestor.',
+      );
     }
     const validPassword = await this.bcyptService.compare(
       credentials.password,

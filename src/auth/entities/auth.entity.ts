@@ -18,8 +18,25 @@ export class Auth {
   mustChangePassword = false;
   /** Senha provisória em texto plano; `null` assim que o usuário define a dele. */
   tempPassword?: string | null;
+  /**
+   * Quando a senha provisória expira (ISO 8601). Depois disso ela **deixa de
+   * logar** e o texto plano é apagado — sem prazo, a senha de quem nunca fez o
+   * primeiro acesso ficaria em claro no banco para sempre.
+   */
+  tempPasswordExpiresAt?: string | null;
 
   constructor(partial: Partial<Auth>) {
     return Object.assign(this, partial);
   }
+}
+
+/** Validade da senha provisória: 72h a partir da geração. */
+export const TEMP_PASSWORD_TTL_MS = 3 * 24 * 60 * 60 * 1000;
+
+/** Vencida? Sem prazo gravado (registros anteriores ao prazo), não expira. */
+export function isTempPasswordExpired(auth: Auth, now = Date.now()): boolean {
+  if (!auth.mustChangePassword || !auth.tempPasswordExpiresAt) {
+    return false;
+  }
+  return new Date(auth.tempPasswordExpiresAt).getTime() <= now;
 }

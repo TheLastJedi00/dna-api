@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { UsersRepository } from '../users/users.repository';
 import { AuthService } from '../auth/auth.service';
+import { isTempPasswordExpired } from '../auth/entities/auth.entity';
 import { User } from '../users/entities/user.entity';
 import { Roles } from '../enums/role.enum';
 import { applyListQuery, assertDirection, ListQuery } from '../common/list-query';
@@ -26,6 +27,8 @@ export type AnalystDetailView = Omit<
   email: string | null;
   mustChangePassword: boolean;
   tempPassword: string | null;
+  /** Até quando a senha provisória vale (ISO 8601); `null` se não há uma. */
+  tempPasswordExpiresAt: string | null;
 };
 
 /**
@@ -76,11 +79,16 @@ export class AnalystsService {
   async findOneView(id: string): Promise<AnalystDetailView> {
     const analyst = await this.findOne(id);
     const credentials = await this.auth.findCredentialsById(id);
+    // Senha vencida não é senha: some da tela do gestor (ver UsersService).
+    const expired = credentials ? isTempPasswordExpired(credentials) : false;
     return {
       ...analyst,
       email: credentials?.email ?? analyst.email ?? null,
       mustChangePassword: credentials?.mustChangePassword ?? false,
-      tempPassword: credentials?.tempPassword ?? null,
+      tempPassword: expired ? null : (credentials?.tempPassword ?? null),
+      tempPasswordExpiresAt: expired
+        ? null
+        : (credentials?.tempPasswordExpiresAt ?? null),
     };
   }
 
