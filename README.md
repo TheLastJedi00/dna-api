@@ -51,9 +51,41 @@ Veja `.env.example`. Destaques:
 
 ## Autenticação
 
-- `POST /auth` — login por credenciais → `{ access_token, refresh_token }`.
+- `POST /auth` — login por credenciais → `{ access_token, refresh_token, mustChangePassword }`.
 - `POST /auth/refresh` — renova o par a partir do refresh (rotação; nega se revogado).
 - `POST /auth/logout` — revoga o refresh informado.
+- `POST /auth/change-password` — o próprio usuário define a senha definitiva. O id sai
+  **do token**, nunca do corpo. Devolve um **par de tokens novo**.
+
+## Senha temporária (primeiro acesso e recuperação)
+
+A senha definida no cadastro (`POST /users/maestra`, `POST /analysts`) **já nasce
+provisória**: vale para o login, mas o usuário é obrigado a trocá-la no primeiro acesso.
+Até lá ela fica visível, em texto plano, para quem o cadastrou.
+
+O estado mora no doc `auth`:
+
+| Campo | Descrição |
+|-------|-----------|
+| `mustChangePassword` | `true` enquanto a senha em uso for provisória |
+| `tempPassword` | a senha provisória **em texto plano**; `null` após a troca |
+
+- `PATCH /users/:id/temp-password` (`ADMIN`/`MANAGER`/`ANALYST`, **com posse**) e
+  `PATCH /analysts/:id/temp-password` (`ADMIN`/`MANAGER`) — o gestor digita uma senha
+  provisória para devolver o acesso a quem o perdeu.
+- `POST /auth/change-password` — o usuário define a definitiva: apaga o `tempPassword`,
+  zera a flag e recebe tokens novos.
+
+**`mustChangePassword` é claim do JWT**, não só um campo da resposta do login: é isso que
+faz o bloqueio da troca obrigatória sobreviver a um reload ou a uma URL digitada à mão. O
+`refresh` preserva o claim (renovar o token não é rota de fuga) e a troca **reemite** o par
+— senão o access token em mãos continuaria carregando o claim antigo.
+
+> ⚠️ **`tempPassword` é credencial em texto plano.** Ela existe porque a spec exige que o
+> gestor consiga repassar a senha. Por isso: sai **apenas** no endpoint de detalhe
+> (`GET /users/:id`, `GET /analysts/:id`) e só para quem tem posse do usuário — **nunca**
+> no login, no `/users/me` ou em qualquer listagem — e é apagada no instante em que a
+> senha definitiva é definida.
 
 ## Papéis e visibilidade (RBAC)
 
@@ -89,7 +121,8 @@ permitindo reativar.
   `X-Total-Count`, `X-Page`, `X-Page-Size`, `X-Total-Pages` (expostos no CORS).
   Cada item traz `createdBy` e `createdByName` (nome de quem cadastrou; cai para o
   e-mail de acesso quando o criador não tem perfil, caso do Manager).
-- `GET /users/:id` — detalhe, com `createdByName`.
+- `GET /users/:id` — detalhe, com `createdByName` e as credenciais (`email`,
+  `mustChangePassword`, `tempPassword`). É o **único** lugar onde a senha provisória sai.
 - `PATCH /users/:id` — edita o perfil (`fullName`, `birthDate`, `birthTime`, `birthPlace`).
 - `PATCH /users/:id/reactivate` — reativa (soft delete reverso).
 - `DELETE /users/:id` — desativa (soft delete).
@@ -103,8 +136,10 @@ abaixo são exclusivas de **`ADMIN`/`MANAGER`**; o Analista não alcança nenhum
 - `POST /analysts` — cria (`fullName` + `login: { email, password }`).
 - `GET /analysts` — lista **paginada** (mesmos `page`/`pageSize`/`name`/`status` e
   headers `X-*` da listagem de Maestras).
-- `GET /analysts/:id` — detalhe. Devolve **404** se o id for de uma Maestra — a rota
-  não é atalho para dados de cliente.
+- `GET /analysts/:id` — detalhe, com as credenciais (`email`, `mustChangePassword`,
+  `tempPassword`). Devolve **404** se o id for de uma Maestra — a rota não é atalho para
+  dados de cliente.
+- `PATCH /analysts/:id/temp-password` — gera a senha provisória do Analista.
 - `PATCH /analysts/:id` — edita o nome.
 - `PATCH /analysts/:id/reactivate` — reativa.
 - `DELETE /analysts/:id` — desativa (soft delete).
