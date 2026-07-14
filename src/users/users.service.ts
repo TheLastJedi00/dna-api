@@ -10,6 +10,7 @@ import { UserStatusFilter } from './dto/list-users-query.dto';
 import { UsersRepository } from './users.repository';
 import { User } from './entities/user.entity';
 import { AuthService } from '../auth/auth.service';
+import { isTempPasswordExpired } from '../auth/entities/auth.entity';
 import { Roles } from '../enums/role.enum';
 import { applyListQuery, assertDirection } from '../common/list-query';
 
@@ -22,6 +23,20 @@ export type MaestraView = Omit<
   User,
   'disable' | 'enable' | 'applyUpdate' | 'toUserDataPrompt'
 > & { createdByName: string | null };
+
+/**
+ * Detalhe da Maestra: a view da listagem + as credenciais (spec 005). O
+ * `tempPassword` é senha em texto plano — por isso só existe aqui, no detalhe de
+ * quem tem posse da Maestra, e nunca na listagem.
+ */
+export type MaestraDetailView = Omit<MaestraView, 'email'> & {
+  /** Vem da coleção `auth` (fonte de verdade), não da cópia no perfil. */
+  email: string | null;
+  mustChangePassword: boolean;
+  tempPassword: string | null;
+  /** Até quando a senha provisória vale (ISO 8601); `null` se não há uma. */
+  tempPasswordExpiresAt: string | null;
+};
 
 @Injectable()
 export class UsersService {
@@ -155,14 +170,42 @@ export class UsersService {
     return user;
   }
 
-  /** Detalhe da Maestra para resposta HTTP: inclui quem a cadastrou. */
+  /**
+   * Detalhe da Maestra para resposta HTTP: quem a cadastrou + as credenciais
+   * (e-mail e o estado da senha provisória), lidas da coleção `auth`.
+   */
   async findOneView(
     id: string,
     requester: { id: string; roles: string[] },
-  ): Promise<MaestraView> {
+  ): Promise<MaestraDetailView> {
     const user = await this.findOne(id, requester);
     const [view] = await this.withCreatorNames([user]);
-    return view;
+    const credentials = await this.auth.findCredentialsById(id);
+    // Senha vencida não é senha: some da tela do gestor, e o botão de gerar
+    // outra volta a aparecer.
+    const expired = credentials ? isTempPasswordExpired(credentials) : false;
+    return {
+      ...view,
+      email: credentials?.email ?? user.email ?? null,
+      mustChangePassword: credentials?.mustChangePassword ?? false,
+      tempPassword: expired ? null : (credentials?.tempPassword ?? null),
+      tempPasswordExpiresAt: expired
+        ? null
+        : (credentials?.tempPasswordExpiresAt ?? null),
+    };
+  }
+
+  /**
+   * Redefinição da senha da Maestra pelo painel. A posse é validada antes: um
+   * Analista não pode redefinir a senha da Maestra de outro.
+   */
+  async setTempPassword(
+    id: string,
+    password: string,
+    requester: { id: string; roles: string[] },
+  ): Promise<void> {
+    await this.loadManageable(id, requester);
+    await this.auth.setTempPassword(id, password);
   }
 
   /**

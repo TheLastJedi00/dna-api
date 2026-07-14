@@ -15,6 +15,7 @@ import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { ListUsersQueryDto } from './dto/list-users-query.dto';
+import { TempPasswordDto } from '../auth/dto/temp-password.dto';
 import { AuthGuard } from '../auth/guards/auth.guard';
 import { RoleGuard } from '../auth/guards/role.guard';
 import { Role } from '../decorators/role.decorator';
@@ -102,6 +103,21 @@ export class UsersController {
     @Ownership('roles') requesterRoles: string[],
   ) {
     return await this.usersService.disable(userId, {
+      id: requesterId,
+      roles: requesterRoles,
+    });
+  }
+
+  // Gera a senha provisória da Maestra (recuperação de acesso pelo painel).
+  @Patch(':id/temp-password')
+  @Role(Roles.ADMIN, Roles.MANAGER, Roles.ANALYST)
+  async setTempPassword(
+    @Param('id') userId: string,
+    @Body() { password }: TempPasswordDto,
+    @Ownership('id') requesterId: string,
+    @Ownership('roles') requesterRoles: string[],
+  ) {
+    await this.usersService.setTempPassword(userId, password, {
       id: requesterId,
       roles: requesterRoles,
     });

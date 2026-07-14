@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { UsersRepository } from '../users/users.repository';
 import { AuthService } from '../auth/auth.service';
+import { isTempPasswordExpired } from '../auth/entities/auth.entity';
 import { User } from '../users/entities/user.entity';
 import { Roles } from '../enums/role.enum';
 import { applyListQuery, assertDirection, ListQuery } from '../common/list-query';
@@ -16,6 +17,19 @@ export interface LinkedMaestra {
   fullName: string;
   isActive: boolean;
 }
+
+/** Detalhe do Analista: o perfil + as credenciais (spec 005). */
+export type AnalystDetailView = Omit<
+  User,
+  'disable' | 'enable' | 'applyUpdate' | 'toUserDataPrompt' | 'email'
+> & {
+  /** Vem da coleção `auth` (fonte de verdade), não da cópia no perfil. */
+  email: string | null;
+  mustChangePassword: boolean;
+  tempPassword: string | null;
+  /** Até quando a senha provisória vale (ISO 8601); `null` se não há uma. */
+  tempPasswordExpiresAt: string | null;
+};
 
 /**
  * Analistas são perfis da coleção `users` com `roles: ['ANALYST']` — mesmo
@@ -55,6 +69,33 @@ export class AnalystsService {
       throw new NotFoundException(`Analista com o ID ${id} não encontrado`);
     }
     return analyst;
+  }
+
+  /**
+   * Detalhe do Analista com as credenciais (e-mail e estado da senha
+   * provisória). Como no caso da Maestra, o `tempPassword` só sai aqui — nunca
+   * na listagem.
+   */
+  async findOneView(id: string): Promise<AnalystDetailView> {
+    const analyst = await this.findOne(id);
+    const credentials = await this.auth.findCredentialsById(id);
+    // Senha vencida não é senha: some da tela do gestor (ver UsersService).
+    const expired = credentials ? isTempPasswordExpired(credentials) : false;
+    return {
+      ...analyst,
+      email: credentials?.email ?? analyst.email ?? null,
+      mustChangePassword: credentials?.mustChangePassword ?? false,
+      tempPassword: expired ? null : (credentials?.tempPassword ?? null),
+      tempPasswordExpiresAt: expired
+        ? null
+        : (credentials?.tempPasswordExpiresAt ?? null),
+    };
+  }
+
+  /** Redefinição da senha do Analista pelo painel (ADMIN/MANAGER). */
+  async setTempPassword(id: string, password: string): Promise<void> {
+    await this.findOne(id);
+    await this.auth.setTempPassword(id, password);
   }
 
   async update(id: string, data: UpdateAnalystDto) {

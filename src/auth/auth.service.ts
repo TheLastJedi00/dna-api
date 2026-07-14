@@ -1,11 +1,16 @@
 import {
   ConflictException,
   Injectable,
+  NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
 import { randomUUID } from 'crypto';
 import { AuthRepository } from './auth.repository';
-import { Auth } from './entities/auth.entity';
+import {
+  Auth,
+  isTempPasswordExpired,
+  TEMP_PASSWORD_TTL_MS,
+} from './entities/auth.entity';
 import { BcryptService } from './bcrypt.service';
 import { UserLoginDto } from '../users/dto/create-user.dto';
 import { JwtService } from '@nestjs/jwt';
@@ -25,15 +30,80 @@ export class AuthService {
     private readonly refreshStore: RefreshTokenStore,
   ) {}
 
+  /**
+   * A senha definida no cadastro **já nasce provisória** (spec 005): vale para o
+   * login, mas o usuário é obrigado a trocá-la no primeiro acesso, e até lá ela
+   * fica visível em texto plano para quem o cadastrou.
+   */
   async create(data, roles: string[]) {
     const compareEmail = await this.repository.findByEmail(data.email);
     if (compareEmail) {
       throw new ConflictException('Email já cadastrado.');
     }
     const hashPass = await this.bcyptService.hash(data.password);
-    const auth = new Auth({ ...data, password: hashPass, roles: roles });
+    const auth = new Auth({
+      ...data,
+      password: hashPass,
+      roles: roles,
+      mustChangePassword: true,
+      tempPassword: data.password,
+      tempPasswordExpiresAt: this.tempPasswordDeadline(),
+    });
     const created = await this.repository.create(auth);
     return created;
+  }
+
+  /** Prazo da senha provisória a partir de agora (ISO 8601). */
+  private tempPasswordDeadline(): string {
+    return new Date(Date.now() + TEMP_PASSWORD_TTL_MS).toISOString();
+  }
+
+  /**
+   * Redefinição pelo painel: o gestor digita a senha, ela passa a valer para o
+   * login e fica visível para ele até o usuário definir a própria.
+   */
+  async setTempPassword(id: string, password: string): Promise<void> {
+    const auth = await this.repository.findById(id);
+    if (!auth) {
+      throw new NotFoundException(`Credenciais do ID ${id} não encontradas.`);
+    }
+    await this.repository.update(id, {
+      password: await this.bcyptService.hash(password),
+      mustChangePassword: true,
+      tempPassword: password,
+      tempPasswordExpiresAt: this.tempPasswordDeadline(),
+    });
+  }
+
+  /**
+   * O usuário define a senha definitiva: apaga o rastro da provisória e reemite
+   * o par de tokens — o access token em mãos carrega o claim antigo
+   * (`mustChangePassword: true`) e, sem trocá-lo, o usuário seguiria preso na
+   * tela de troca.
+   */
+  async changePassword(id: string, newPassword: string) {
+    const auth = await this.repository.findById(id);
+    if (!auth) {
+      throw new NotFoundException(`Credenciais do ID ${id} não encontradas.`);
+    }
+    await this.repository.update(id, {
+      password: await this.bcyptService.hash(newPassword),
+      mustChangePassword: false,
+      tempPassword: null,
+      tempPasswordExpiresAt: null,
+    });
+    const payload = new JwtPayload({
+      id: auth.id,
+      email: auth.email,
+      roles: auth.roles,
+      mustChangePassword: false,
+    });
+    return this.issueTokens(payload);
+  }
+
+  /** Credenciais de um id, para compor o detalhe do usuário. */
+  async findCredentialsById(id: string) {
+    return await this.repository.findById(id);
   }
 
   /**
@@ -50,6 +120,15 @@ export class AuthService {
     if (!userData) {
       throw new UnauthorizedException('Email não cadastrado.');
     }
+    // Prazo vencido: a senha provisória para de logar (mesmo estando correta) e o
+    // texto plano é apagado aqui mesmo — é a limpeza preguiçosa que evita depender
+    // de um agendador. O acesso volta quando o gestor gerar outra senha.
+    if (isTempPasswordExpired(userData)) {
+      await this.repository.update(userData.id, { tempPassword: null });
+      throw new UnauthorizedException(
+        'Senha temporária expirada. Peça uma nova ao seu gestor.',
+      );
+    }
     const validPassword = await this.bcyptService.compare(
       credentials.password,
       userData.password,
@@ -61,8 +140,12 @@ export class AuthService {
       id: userData.id,
       email: userData.email,
       roles: userData.roles,
+      mustChangePassword: userData.mustChangePassword ?? false,
     });
-    return this.issueTokens(payload);
+    const tokens = await this.issueTokens(payload);
+    // A spec pede o status também no corpo da resposta do login; a fonte de
+    // verdade do bloqueio, porém, é o claim do token.
+    return { ...tokens, mustChangePassword: payload.mustChangePassword };
   }
 
   /**
@@ -87,6 +170,9 @@ export class AuthService {
       id: decoded.id,
       email: decoded.email,
       roles: decoded.roles,
+      // Preserva o bloqueio: renovar o token não pode ser um jeito de escapar da
+      // troca obrigatória.
+      mustChangePassword: decoded.mustChangePassword ?? false,
     });
     return this.issueTokens(payload);
   }
