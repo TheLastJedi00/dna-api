@@ -55,13 +55,28 @@ Veja `.env.example`. Destaques:
 - `POST /auth/refresh` — renova o par a partir do refresh (rotação; nega se revogado).
 - `POST /auth/logout` — revoga o refresh informado.
 
+## Papéis e visibilidade (RBAC)
+
+| Role | Pode |
+|------|------|
+| `ADMIN` | Super-usuário: tudo, incluindo **todas** as Maestras (mesmo as sem vínculo) |
+| `MANAGER` | Gerencia **Analistas** + as Maestras **que ele mesmo cadastrou** |
+| `ANALYST` | Gerencia apenas as Maestras **que ele mesmo cadastrou**. Sem acesso a `/analysts` |
+| `USER` | A Maestra (cliente): acessa apenas os próprios dados |
+
+Toda Maestra guarda `createdBy` = id de quem a cadastrou (vem **do token**, nunca do
+corpo). Esse vínculo governa a listagem **e** o acesso direto: `GET`/`PATCH`/`DELETE`
+`/users/:id` devolvem **403** se a Maestra não for do requisitante (exceto `ADMIN`).
+
 ## Maestras (CRUD)
 
-Gestão das Maestras (role `USER`), restrita a `ADMIN`/`MANAGER`. Desativação é
-**soft delete** (`isActive`), permitindo reativar.
+Gestão das Maestras (role `USER`). Desativação é **soft delete** (`isActive`),
+permitindo reativar.
 
-- `POST /users/maestra` — cria uma Maestra (`ADMIN`).
-- `GET /users/active/:orderBy/:direction` — lista **paginada** com busca e filtro.
+- `POST /users/maestra` — cria uma Maestra e a vincula ao requisitante
+  (`ADMIN`/`MANAGER`/`ANALYST`).
+- `GET /users/active/:orderBy/:direction` — lista **paginada** com busca e filtro,
+  já restrita à visibilidade do requisitante.
   Query params:
   | Param | Default | Descrição |
   |-------|---------|-----------|
@@ -72,10 +87,30 @@ Gestão das Maestras (role `USER`), restrita a `ADMIN`/`MANAGER`. Desativação 
 
   O corpo é o **array de itens** da página; os metadados vão nos headers
   `X-Total-Count`, `X-Page`, `X-Page-Size`, `X-Total-Pages` (expostos no CORS).
-- `GET /users/:id` — detalhe (`ADMIN`/`MANAGER`).
+  Cada item traz `createdBy` e `createdByName` (nome de quem cadastrou; cai para o
+  e-mail de acesso quando o criador não tem perfil, caso do Manager).
+- `GET /users/:id` — detalhe, com `createdByName`.
 - `PATCH /users/:id` — edita o perfil (`fullName`, `birthDate`, `birthTime`, `birthPlace`).
 - `PATCH /users/:id/reactivate` — reativa (soft delete reverso).
 - `DELETE /users/:id` — desativa (soft delete).
+
+## Analistas (CRUD + supervisão)
+
+Analistas são perfis da **mesma coleção `users`**, com `roles: ['ANALYST']` (doc
+chaveado pelo id do `auth`, igual à Maestra) — não têm mapa natal. Todas as rotas
+abaixo são exclusivas de **`ADMIN`/`MANAGER`**; o Analista não alcança nenhuma delas.
+
+- `POST /analysts` — cria (`fullName` + `login: { email, password }`).
+- `GET /analysts` — lista **paginada** (mesmos `page`/`pageSize`/`name`/`status` e
+  headers `X-*` da listagem de Maestras).
+- `GET /analysts/:id` — detalhe. Devolve **404** se o id for de uma Maestra — a rota
+  não é atalho para dados de cliente.
+- `PATCH /analysts/:id` — edita o nome.
+- `PATCH /analysts/:id/reactivate` — reativa.
+- `DELETE /analysts/:id` — desativa (soft delete).
+- `GET /analysts/:id/maestras` — **supervisão**: a carteira do Analista em DTO
+  reduzido — apenas `fullName` e `isActive`. Sem `id` e sem dados natais, de modo que
+  o Manager acompanha a carteira sem acessar os dados pessoais da cliente.
 
 ## Plano Perfeito
 

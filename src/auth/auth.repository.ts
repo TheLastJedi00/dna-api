@@ -18,6 +18,14 @@ export class AuthRepository {
       return {id: user.id}
   }
 
+  async findById(id: string) {
+    const snap = await this.db.doc(id).get();
+    if (!snap.exists) {
+      return null;
+    }
+    return plainToInstance(Auth, snap.data());
+  }
+
   async findByEmail(email: string) {
     const snap = await this.db.where('email', '==', email).limit(1).get();
     if(snap.empty){

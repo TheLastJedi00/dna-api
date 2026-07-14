@@ -36,6 +36,15 @@ export class AuthService {
     return created;
   }
 
+  /**
+   * E-mail de acesso de um id. Usado para identificar quem cadastrou uma
+   * Maestra quando o criador não tem perfil em `users` (caso do Manager).
+   */
+  async findEmailById(id: string): Promise<string | null> {
+    const auth = await this.repository.findById(id);
+    return auth?.email ?? null;
+  }
+
   async loginByCredentials(credentials: UserLoginDto) {
     const userData = await this.repository.findByEmail(credentials.email);
     if (!userData) {
