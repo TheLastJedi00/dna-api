@@ -38,7 +38,11 @@ describe('AnalystsService', () => {
     update: jest.Mock;
     create: jest.Mock;
   };
-  let auth: { create: jest.Mock };
+  let auth: {
+    create: jest.Mock;
+    setTempPassword: jest.Mock;
+    findCredentialsById: jest.Mock;
+  };
 
   beforeEach(() => {
     repo = {
@@ -47,7 +51,11 @@ describe('AnalystsService', () => {
       update: jest.fn().mockImplementation((_id, u) => Promise.resolve(u)),
       create: jest.fn(),
     };
-    auth = { create: jest.fn().mockResolvedValue({ id: 'auth-1' }) };
+    auth = {
+      create: jest.fn().mockResolvedValue({ id: 'auth-1' }),
+      setTempPassword: jest.fn().mockResolvedValue(undefined),
+      findCredentialsById: jest.fn().mockResolvedValue(null),
+    };
     service = new AnalystsService(repo as any, auth as any);
   });
 
@@ -190,6 +198,52 @@ describe('AnalystsService', () => {
       await expect(
         service.findLinkedMaestras('fantasma'),
       ).rejects.toBeInstanceOf(NotFoundException);
+    });
+  });
+
+  describe('senha temporária (spec 005)', () => {
+    it('o detalhe traz e-mail e o estado da senha, lidos do auth', async () => {
+      repo.findById.mockResolvedValue(makeAnalyst('Ana', true, 'a1'));
+      auth.findCredentialsById.mockResolvedValue({
+        email: 'ana@dna.com',
+        mustChangePassword: true,
+        tempPassword: 'provisoria',
+      });
+
+      const view = await service.findOneView('a1');
+
+      expect(view.email).toBe('ana@dna.com');
+      expect(view.mustChangePassword).toBe(true);
+      expect(view.tempPassword).toBe('provisoria');
+    });
+
+    it('a listagem NÃO carrega a senha em texto plano', async () => {
+      repo.findAllWithRole.mockResolvedValue([makeAnalyst('Ana')]);
+
+      const { items } = await service.findAll({
+        orderBy: 'fullName',
+        direction: 'asc',
+      });
+
+      expect(items[0]).not.toHaveProperty('tempPassword');
+      expect(auth.findCredentialsById).not.toHaveBeenCalled();
+    });
+
+    it('redefine a senha do analista', async () => {
+      repo.findById.mockResolvedValue(makeAnalyst('Ana', true, 'a1'));
+
+      await service.setTempPassword('a1', 'nova123');
+
+      expect(auth.setTempPassword).toHaveBeenCalledWith('a1', 'nova123');
+    });
+
+    it('não redefine a senha de quem não é analista (404)', async () => {
+      repo.findById.mockResolvedValue(makeMaestra('Bruna'));
+
+      await expect(
+        service.setTempPassword('Bruna', 'invadida'),
+      ).rejects.toBeInstanceOf(NotFoundException);
+      expect(auth.setTempPassword).not.toHaveBeenCalled();
     });
   });
 });
