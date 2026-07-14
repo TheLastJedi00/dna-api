@@ -53,7 +53,12 @@ describe('UsersService — CRUD de Maestras', () => {
     update: jest.Mock;
     create: jest.Mock;
   };
-  let auth: { create: jest.Mock; findEmailById: jest.Mock };
+  let auth: {
+    create: jest.Mock;
+    findEmailById: jest.Mock;
+    setTempPassword: jest.Mock;
+    findCredentialsById: jest.Mock;
+  };
 
   beforeEach(() => {
     repo = {
@@ -63,7 +68,12 @@ describe('UsersService — CRUD de Maestras', () => {
       update: jest.fn().mockImplementation((_id, u) => Promise.resolve(u)),
       create: jest.fn(),
     };
-    auth = { create: jest.fn(), findEmailById: jest.fn().mockResolvedValue(null) };
+    auth = {
+      create: jest.fn(),
+      findEmailById: jest.fn().mockResolvedValue(null),
+      setTempPassword: jest.fn().mockResolvedValue(undefined),
+      findCredentialsById: jest.fn().mockResolvedValue(null),
+    };
     service = new UsersService(repo as any, auth as any);
   });
 
@@ -372,6 +382,64 @@ describe('UsersService — CRUD de Maestras', () => {
       await expect(
         service.update('x', { fullName: 'y' }),
       ).rejects.toBeInstanceOf(NotFoundException);
+    });
+  });
+
+  describe('senha temporária (spec 005)', () => {
+    it('o detalhe traz e-mail e o estado da senha, lidos do auth', async () => {
+      repo.findById.mockResolvedValue(maestraOf('Ana', 'analyst-1'));
+      auth.findCredentialsById.mockResolvedValue({
+        email: 'ana@dna.com',
+        mustChangePassword: true,
+        tempPassword: 'provisoria',
+      });
+
+      const view = await service.findOneView('Ana', {
+        id: 'analyst-1',
+        roles: ['ANALYST'],
+      });
+
+      expect(view.email).toBe('ana@dna.com');
+      expect(view.mustChangePassword).toBe(true);
+      expect(view.tempPassword).toBe('provisoria');
+    });
+
+    it('a listagem NÃO carrega a senha em texto plano', async () => {
+      repo.findAllWithRole.mockResolvedValue([maestraOf('Ana', 'admin-1')]);
+      repo.findByIds.mockResolvedValue([]);
+
+      const { items } = await service.findAllActiveUsers({
+        orderBy: 'fullName',
+        direction: 'asc',
+        ...admin,
+      });
+
+      // A senha provisória é credencial em claro: só pode existir no detalhe.
+      expect(items[0]).not.toHaveProperty('tempPassword');
+      expect(auth.findCredentialsById).not.toHaveBeenCalled();
+    });
+
+    it('ANALYST redefine a senha da própria Maestra', async () => {
+      repo.findById.mockResolvedValue(maestraOf('Ana', 'analyst-1'));
+
+      await service.setTempPassword('Ana', 'nova123', {
+        id: 'analyst-1',
+        roles: ['ANALYST'],
+      });
+
+      expect(auth.setTempPassword).toHaveBeenCalledWith('Ana', 'nova123');
+    });
+
+    it('ANALYST não redefine a senha da Maestra de outro (403)', async () => {
+      repo.findById.mockResolvedValue(maestraOf('Bruna', 'analyst-2'));
+
+      await expect(
+        service.setTempPassword('Bruna', 'invadida', {
+          id: 'analyst-1',
+          roles: ['ANALYST'],
+        }),
+      ).rejects.toBeInstanceOf(ForbiddenException);
+      expect(auth.setTempPassword).not.toHaveBeenCalled();
     });
   });
 });
