@@ -15,6 +15,7 @@ import { AnalystsService } from './analysts.service';
 import { CreateAnalystDto } from './dto/create-analyst.dto';
 import { UpdateAnalystDto } from './dto/update-analyst.dto';
 import { ListAnalystsQueryDto } from './dto/list-analysts-query.dto';
+import { TempPasswordDto } from '../auth/dto/temp-password.dto';
 import { AuthGuard } from '../auth/guards/auth.guard';
 import { RoleGuard } from '../auth/guards/role.guard';
 import { Role } from '../decorators/role.decorator';
@@ -61,7 +62,16 @@ export class AnalystsController {
 
   @Get(':id')
   findOne(@Param('id') id: string) {
-    return this.analystsService.findOne(id);
+    return this.analystsService.findOneView(id);
+  }
+
+  // Gera a senha provisória do Analista (recuperação de acesso pelo painel).
+  @Patch(':id/temp-password')
+  async setTempPassword(
+    @Param('id') id: string,
+    @Body() { password }: TempPasswordDto,
+  ) {
+    await this.analystsService.setTempPassword(id, password);
   }
 
   @Patch(':id/reactivate')

@@ -17,6 +17,17 @@ export interface LinkedMaestra {
   isActive: boolean;
 }
 
+/** Detalhe do Analista: o perfil + as credenciais (spec 005). */
+export type AnalystDetailView = Omit<
+  User,
+  'disable' | 'enable' | 'applyUpdate' | 'toUserDataPrompt' | 'email'
+> & {
+  /** Vem da coleção `auth` (fonte de verdade), não da cópia no perfil. */
+  email: string | null;
+  mustChangePassword: boolean;
+  tempPassword: string | null;
+};
+
 /**
  * Analistas são perfis da coleção `users` com `roles: ['ANALYST']` — mesmo
  * padrão da Maestra (doc chaveado pelo id do `auth`). Por isso este serviço
@@ -55,6 +66,28 @@ export class AnalystsService {
       throw new NotFoundException(`Analista com o ID ${id} não encontrado`);
     }
     return analyst;
+  }
+
+  /**
+   * Detalhe do Analista com as credenciais (e-mail e estado da senha
+   * provisória). Como no caso da Maestra, o `tempPassword` só sai aqui — nunca
+   * na listagem.
+   */
+  async findOneView(id: string): Promise<AnalystDetailView> {
+    const analyst = await this.findOne(id);
+    const credentials = await this.auth.findCredentialsById(id);
+    return {
+      ...analyst,
+      email: credentials?.email ?? analyst.email ?? null,
+      mustChangePassword: credentials?.mustChangePassword ?? false,
+      tempPassword: credentials?.tempPassword ?? null,
+    };
+  }
+
+  /** Redefinição da senha do Analista pelo painel (ADMIN/MANAGER). */
+  async setTempPassword(id: string, password: string): Promise<void> {
+    await this.findOne(id);
+    await this.auth.setTempPassword(id, password);
   }
 
   async update(id: string, data: UpdateAnalystDto) {
