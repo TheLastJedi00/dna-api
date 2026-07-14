@@ -1,6 +1,7 @@
 import {
   ConflictException,
   Injectable,
+  NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
 import { randomUUID } from 'crypto';
@@ -25,15 +26,72 @@ export class AuthService {
     private readonly refreshStore: RefreshTokenStore,
   ) {}
 
+  /**
+   * A senha definida no cadastro **já nasce provisória** (spec 005): vale para o
+   * login, mas o usuário é obrigado a trocá-la no primeiro acesso, e até lá ela
+   * fica visível em texto plano para quem o cadastrou.
+   */
   async create(data, roles: string[]) {
     const compareEmail = await this.repository.findByEmail(data.email);
     if (compareEmail) {
       throw new ConflictException('Email já cadastrado.');
     }
     const hashPass = await this.bcyptService.hash(data.password);
-    const auth = new Auth({ ...data, password: hashPass, roles: roles });
+    const auth = new Auth({
+      ...data,
+      password: hashPass,
+      roles: roles,
+      mustChangePassword: true,
+      tempPassword: data.password,
+    });
     const created = await this.repository.create(auth);
     return created;
+  }
+
+  /**
+   * Redefinição pelo painel: o gestor digita a senha, ela passa a valer para o
+   * login e fica visível para ele até o usuário definir a própria.
+   */
+  async setTempPassword(id: string, password: string): Promise<void> {
+    const auth = await this.repository.findById(id);
+    if (!auth) {
+      throw new NotFoundException(`Credenciais do ID ${id} não encontradas.`);
+    }
+    await this.repository.update(id, {
+      password: await this.bcyptService.hash(password),
+      mustChangePassword: true,
+      tempPassword: password,
+    });
+  }
+
+  /**
+   * O usuário define a senha definitiva: apaga o rastro da provisória e reemite
+   * o par de tokens — o access token em mãos carrega o claim antigo
+   * (`mustChangePassword: true`) e, sem trocá-lo, o usuário seguiria preso na
+   * tela de troca.
+   */
+  async changePassword(id: string, newPassword: string) {
+    const auth = await this.repository.findById(id);
+    if (!auth) {
+      throw new NotFoundException(`Credenciais do ID ${id} não encontradas.`);
+    }
+    await this.repository.update(id, {
+      password: await this.bcyptService.hash(newPassword),
+      mustChangePassword: false,
+      tempPassword: null,
+    });
+    const payload = new JwtPayload({
+      id: auth.id,
+      email: auth.email,
+      roles: auth.roles,
+      mustChangePassword: false,
+    });
+    return this.issueTokens(payload);
+  }
+
+  /** Credenciais de um id, para compor o detalhe do usuário. */
+  async findCredentialsById(id: string) {
+    return await this.repository.findById(id);
   }
 
   /**
@@ -61,8 +119,12 @@ export class AuthService {
       id: userData.id,
       email: userData.email,
       roles: userData.roles,
+      mustChangePassword: userData.mustChangePassword ?? false,
     });
-    return this.issueTokens(payload);
+    const tokens = await this.issueTokens(payload);
+    // A spec pede o status também no corpo da resposta do login; a fonte de
+    // verdade do bloqueio, porém, é o claim do token.
+    return { ...tokens, mustChangePassword: payload.mustChangePassword };
   }
 
   /**
@@ -87,6 +149,9 @@ export class AuthService {
       id: decoded.id,
       email: decoded.email,
       roles: decoded.roles,
+      // Preserva o bloqueio: renovar o token não pode ser um jeito de escapar da
+      // troca obrigatória.
+      mustChangePassword: decoded.mustChangePassword ?? false,
     });
     return this.issueTokens(payload);
   }
