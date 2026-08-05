@@ -159,6 +159,24 @@ abaixo são exclusivas de **`ADMIN`/`MANAGER`**; o Analista não alcança nenhum
   reduzido — apenas `fullName` e `isActive`. Sem `id` e sem dados natais, de modo que
   o Manager acompanha a carteira sem acessar os dados pessoais da cliente.
 
+## Desenho Humano — campos enumerados
+
+Quatro campos do `POST /human-design/:userId` só aceitam os valores abaixo
+(`@IsIn`, em `src/human-design/human-design.constants.ts`). Qualquer outro valor
+devolve **400** — o formulário do painel oferece exatamente essas opções.
+
+| Campo | Valores aceitos |
+| --- | --- |
+| `tipo_aurico` | `Geradora` · `Geradora Manifestante` · `Projetora` · `Manifestadora` · `Refletora` |
+| `encarnacao.quarto_de_cruz` | `Quarto 1 - Iniciação` · `Quarto 2 - Civilização` · `Quarto 3 - Dualidade` · `Quarto 4 - Mutação` |
+| `encarnacao.angulo` | `Ângulo Direito` · `Ângulo Esquerdo` · `Justa Posição` |
+| `encarnacao.grupo_de_destino` | `Pessoal` · `Transpessoal` · `Justa Posição` |
+
+`grupo_de_destino` é derivado do `angulo` no formulário (Direito → Pessoal,
+Esquerdo → Transpessoal, Justa Posição → Justa Posição), mas trafega e é validado
+como campo próprio, e entra no `toPrompt()`. Documentos gravados antes dele
+seguem legíveis: a validação só vale para escrita nova.
+
 ## Plano Perfeito
 
 Pilar `perfect-plain` (módulo único `plano-perfeito`) que **reaproveita os dados dos 3

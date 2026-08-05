@@ -1,6 +1,6 @@
 import { randomUUID } from 'crypto';
 
-export class  Canal {
+export class Canal {
   id!: string;
   nome!: string;
 }
@@ -24,6 +24,7 @@ export class Ativacoes {
 
 export class Encarnacao {
   angulo!: string;
+  grupo_de_destino!: string;
   cruz!: string;
   portoes!: string;
   quarto_de_cruz!: string;
@@ -77,6 +78,7 @@ export class HumanDesign {
   Ativações Personalidade (Sol/Terra/Lua): ${this.ativacoes?.personalidade?.sol || ''} / ${this.ativacoes?.personalidade?.terra || ''} / ${this.ativacoes?.personalidade?.lua || ''}
   Ativações Desenho (Sol/Terra/Lua): ${this.ativacoes?.desenho?.sol || ''} / ${this.ativacoes?.desenho?.terra || ''} / ${this.ativacoes?.desenho?.lua || ''}
   Encarnação (Ângulo): ${this.encarnacao?.angulo || ''}
+  Encarnação (Grupo de Destino): ${this.encarnacao?.grupo_de_destino || ''}
   Encarnação (Cruz): ${this.encarnacao?.cruz || ''}
   Encarnação (Portões): ${this.encarnacao?.portoes || ''}
   Encarnação (Quarto de Cruz): ${this.encarnacao?.quarto_de_cruz || ''}`;
