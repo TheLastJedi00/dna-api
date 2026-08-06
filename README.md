@@ -118,7 +118,9 @@ Gestão das Maestras (role `USER`). Desativação é **soft delete** (`isActive`
 permitindo reativar.
 
 - `POST /users/maestra` — cria uma Maestra e a vincula ao requisitante
-  (`ADMIN`/`MANAGER`/`ANALYST`).
+  (`ADMIN`/`MANAGER`/`ANALYST`). Além dos dados natais aceita dois campos
+  opcionais: `businessArea` (ramo de atuação, texto livre) e `pronoun`
+  (`masculino` \| `feminino`, default `feminino`).
 - `GET /users/active/:orderBy/:direction` — lista **paginada** com busca e filtro,
   já restrita à visibilidade do requisitante.
   Query params:
@@ -135,7 +137,15 @@ permitindo reativar.
   e-mail de acesso quando o criador não tem perfil, caso do Manager).
 - `GET /users/:id` — detalhe, com `createdByName` e as credenciais (`email`,
   `mustChangePassword`, `tempPassword`). É o **único** lugar onde a senha provisória sai.
-- `PATCH /users/:id` — edita o perfil (`fullName`, `birthDate`, `birthTime`, `birthPlace`).
+- `PATCH /users/:id` — edita o perfil (`fullName`, `birthDate`, `birthTime`,
+  `birthPlace`, `businessArea`, `pronoun`).
+
+O `pronoun` e o `businessArea` entram no `toUserDataPrompt()` da entidade `User`,
+de onde alcançam **todas** as gerações de conteúdo: o prompt instrui o modelo a
+tratar a Maestra no gênero escolhido e a considerar o ramo de atuação. Os
+templates no Firestore continuam genéricos — não precisam ser alterados.
+Cadastros anteriores não têm os campos e assumem `pronoun: 'feminino'`, que é o
+comportamento que o sistema já tinha.
 - `PATCH /users/:id/reactivate` — reativa (soft delete reverso).
 - `DELETE /users/:id` — desativa (soft delete).
 
