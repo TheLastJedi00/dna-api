@@ -46,14 +46,146 @@ Veja `.env.example`. Destaques:
 | `GEMINI_API_KEY` | sim | Chave da API do Gemini |
 | `GEMINI_MODEL` | não | Modelo do Gemini |
 | `REDIS_URL` | não | Habilita cache/rate-limit/allowlist de refresh |
-| `DEV_ORIGIN` | não | Origem liberada no CORS |
+| `ALLOWED_ORIGINS` | não | Origens permitidas no CORS (separar por vírgula) |
 | `PORT` | não (8080) | Porta HTTP |
 
 ## Autenticação
 
-- `POST /auth` — login por credenciais → `{ access_token, refresh_token }`.
+- `POST /auth` — login por credenciais → `{ access_token, refresh_token, mustChangePassword }`.
 - `POST /auth/refresh` — renova o par a partir do refresh (rotação; nega se revogado).
 - `POST /auth/logout` — revoga o refresh informado.
+- `POST /auth/change-password` — o próprio usuário define a senha definitiva. O id sai
+  **do token**, nunca do corpo. Devolve um **par de tokens novo**.
+
+## Senha temporária (primeiro acesso e recuperação)
+
+A senha definida no cadastro (`POST /users/maestra`, `POST /analysts`) **já nasce
+provisória**: vale para o login, mas o usuário é obrigado a trocá-la no primeiro acesso.
+Até lá ela fica visível, em texto plano, para quem o cadastrou.
+
+O estado mora no doc `auth`:
+
+| Campo | Descrição |
+|-------|-----------|
+| `mustChangePassword` | `true` enquanto a senha em uso for provisória |
+| `tempPassword` | a senha provisória **em texto plano**; `null` após a troca ou o vencimento |
+| `tempPasswordExpiresAt` | até quando ela vale (ISO 8601) — **72h** a partir da geração |
+
+### Prazo de 72h
+
+A senha provisória **vence em 3 dias**. Depois disso ela **deixa de logar** (mesmo estando
+correta: o prazo é checado antes da comparação) e o texto plano é apagado do banco na
+tentativa de login — limpeza preguiçosa, sem depender de agendador. Quem não entrou a tempo
+fica sem acesso até o gestor gerar outra senha; no painel, a senha vencida some do detalhe e
+o botão "Gerar senha temporária" volta a aparecer.
+
+Sem o prazo, a senha de quem nunca fez o primeiro acesso ficaria em claro no banco para
+sempre. Registros anteriores a este campo (sem `tempPasswordExpiresAt`) não expiram.
+
+- `PATCH /users/:id/temp-password` (`ADMIN`/`MANAGER`/`ANALYST`, **com posse**) e
+  `PATCH /analysts/:id/temp-password` (`ADMIN`/`MANAGER`) — o gestor digita uma senha
+  provisória para devolver o acesso a quem o perdeu.
+- `POST /auth/change-password` — o usuário define a definitiva: apaga o `tempPassword`,
+  zera a flag e recebe tokens novos.
+
+**`mustChangePassword` é claim do JWT**, não só um campo da resposta do login: é isso que
+faz o bloqueio da troca obrigatória sobreviver a um reload ou a uma URL digitada à mão. O
+`refresh` preserva o claim (renovar o token não é rota de fuga) e a troca **reemite** o par
+— senão o access token em mãos continuaria carregando o claim antigo.
+
+> ⚠️ **`tempPassword` é credencial em texto plano.** Ela existe porque a spec exige que o
+> gestor consiga repassar a senha. Por isso: sai **apenas** no endpoint de detalhe
+> (`GET /users/:id`, `GET /analysts/:id`) e só para quem tem posse do usuário — **nunca**
+> no login, no `/users/me` ou em qualquer listagem — e é apagada no instante em que a
+> senha definitiva é definida.
+
+## Papéis e visibilidade (RBAC)
+
+| Role | Pode |
+|------|------|
+| `ADMIN` | Super-usuário: tudo, incluindo **todas** as Maestras (mesmo as sem vínculo) |
+| `MANAGER` | Gerencia **Analistas** + as Maestras **que ele mesmo cadastrou** |
+| `ANALYST` | Gerencia apenas as Maestras **que ele mesmo cadastrou**. Sem acesso a `/analysts` |
+| `USER` | A Maestra (cliente): acessa apenas os próprios dados |
+
+Toda Maestra guarda `createdBy` = id de quem a cadastrou (vem **do token**, nunca do
+corpo). Esse vínculo governa a listagem **e** o acesso direto: `GET`/`PATCH`/`DELETE`
+`/users/:id` devolvem **403** se a Maestra não for do requisitante (exceto `ADMIN`).
+
+## Maestras (CRUD)
+
+Gestão das Maestras (role `USER`). Desativação é **soft delete** (`isActive`),
+permitindo reativar.
+
+- `POST /users/maestra` — cria uma Maestra e a vincula ao requisitante
+  (`ADMIN`/`MANAGER`/`ANALYST`). Além dos dados natais aceita dois campos
+  opcionais: `businessArea` (ramo de atuação, texto livre) e `pronoun`
+  (`masculino` \| `feminino`, default `feminino`).
+- `GET /users/active/:orderBy/:direction` — lista **paginada** com busca e filtro,
+  já restrita à visibilidade do requisitante.
+  Query params:
+  | Param | Default | Descrição |
+  |-------|---------|-----------|
+  | `page` | `1` | Página (>= 1) |
+  | `pageSize` | `10` | Itens por página (1..100) |
+  | `name` | — | Busca parcial por nome (case-insensitive) |
+  | `status` | `active` | `active` \| `inactive` \| `all` |
+
+  O corpo é o **array de itens** da página; os metadados vão nos headers
+  `X-Total-Count`, `X-Page`, `X-Page-Size`, `X-Total-Pages` (expostos no CORS).
+  Cada item traz `createdBy` e `createdByName` (nome de quem cadastrou; cai para o
+  e-mail de acesso quando o criador não tem perfil, caso do Manager).
+- `GET /users/:id` — detalhe, com `createdByName` e as credenciais (`email`,
+  `mustChangePassword`, `tempPassword`). É o **único** lugar onde a senha provisória sai.
+- `PATCH /users/:id` — edita o perfil (`fullName`, `birthDate`, `birthTime`,
+  `birthPlace`, `businessArea`, `pronoun`).
+
+O `pronoun` e o `businessArea` entram no `toUserDataPrompt()` da entidade `User`,
+de onde alcançam **todas** as gerações de conteúdo: o prompt instrui o modelo a
+tratar a Maestra no gênero escolhido e a considerar o ramo de atuação. Os
+templates no Firestore continuam genéricos — não precisam ser alterados.
+Cadastros anteriores não têm os campos e assumem `pronoun: 'feminino'`, que é o
+comportamento que o sistema já tinha.
+- `PATCH /users/:id/reactivate` — reativa (soft delete reverso).
+- `DELETE /users/:id` — desativa (soft delete).
+
+## Analistas (CRUD + supervisão)
+
+Analistas são perfis da **mesma coleção `users`**, com `roles: ['ANALYST']` (doc
+chaveado pelo id do `auth`, igual à Maestra) — não têm mapa natal. Todas as rotas
+abaixo são exclusivas de **`ADMIN`/`MANAGER`**; o Analista não alcança nenhuma delas.
+
+- `POST /analysts` — cria (`fullName` + `login: { email, password }`).
+- `GET /analysts` — lista **paginada** (mesmos `page`/`pageSize`/`name`/`status` e
+  headers `X-*` da listagem de Maestras).
+- `GET /analysts/:id` — detalhe, com as credenciais (`email`, `mustChangePassword`,
+  `tempPassword`). Devolve **404** se o id for de uma Maestra — a rota não é atalho para
+  dados de cliente.
+- `PATCH /analysts/:id/temp-password` — gera a senha provisória do Analista.
+- `PATCH /analysts/:id` — edita o nome.
+- `PATCH /analysts/:id/reactivate` — reativa.
+- `DELETE /analysts/:id` — desativa (soft delete).
+- `GET /analysts/:id/maestras` — **supervisão**: a carteira do Analista em DTO
+  reduzido — apenas `fullName` e `isActive`. Sem `id` e sem dados natais, de modo que
+  o Manager acompanha a carteira sem acessar os dados pessoais da cliente.
+
+## Desenho Humano — campos enumerados
+
+Quatro campos do `POST /human-design/:userId` só aceitam os valores abaixo
+(`@IsIn`, em `src/human-design/human-design.constants.ts`). Qualquer outro valor
+devolve **400** — o formulário do painel oferece exatamente essas opções.
+
+| Campo | Valores aceitos |
+| --- | --- |
+| `tipo_aurico` | `Geradora` · `Geradora Manifestante` · `Projetora` · `Manifestadora` · `Refletora` |
+| `encarnacao.quarto_de_cruz` | `Quarto 1 - Iniciação` · `Quarto 2 - Civilização` · `Quarto 3 - Dualidade` · `Quarto 4 - Mutação` |
+| `encarnacao.angulo` | `Ângulo Direito` · `Ângulo Esquerdo` · `Justa Posição` |
+| `encarnacao.grupo_de_destino` | `Pessoal` · `Transpessoal` · `Justa Posição` |
+
+`grupo_de_destino` é derivado do `angulo` no formulário (Direito → Pessoal,
+Esquerdo → Transpessoal, Justa Posição → Justa Posição), mas trafega e é validado
+como campo próprio, e entra no `toPrompt()`. Documentos gravados antes dele
+seguem legíveis: a validação só vale para escrita nova.
 
 ## Plano Perfeito
 

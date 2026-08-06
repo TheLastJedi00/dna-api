@@ -14,6 +14,7 @@ import { HealthController } from './health/health.controller';
 import { DnaStatusModule } from './dna-status/dna-status.module';
 import { NumerologyModule } from './numerology/numerology.module';
 import { AstrologyModule } from './astrology/astrology.module';
+import { AnalystsModule } from './analysts/analysts.module';
 
 @Module({
   imports: [
@@ -41,6 +42,7 @@ import { AstrologyModule } from './astrology/astrology.module';
     DnaStatusModule,
     NumerologyModule,
     AstrologyModule,
+    AnalystsModule,
   ],
   controllers: [HealthController],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],

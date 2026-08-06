@@ -1,5 +1,17 @@
-import { IsArray, IsNumber, IsString, ValidateNested } from 'class-validator';
+import {
+  IsArray,
+  IsIn,
+  IsNumber,
+  IsString,
+  ValidateNested,
+} from 'class-validator';
 import { Type } from 'class-transformer';
+import {
+  ANGULOS,
+  GRUPOS_DE_DESTINO,
+  QUARTOS_DE_CRUZ,
+  TIPOS_AURICOS,
+} from '../human-design.constants';
 
 export class CentrosEnergeticosDto {
   @IsString()
@@ -37,12 +49,17 @@ export class AtivacoesDto {
 
 export class CruzEncarnacaoDto {
   @IsString()
+  @IsIn(ANGULOS)
   angulo!: string;
+  @IsString()
+  @IsIn(GRUPOS_DE_DESTINO)
+  grupo_de_destino!: string;
   @IsString()
   cruz!: string;
   @IsString()
   portoes!: string;
   @IsString()
+  @IsIn(QUARTOS_DE_CRUZ)
   quarto_de_cruz!: string;
 }
 
@@ -50,6 +67,7 @@ export class CreateHumanDesignDto {
   @IsString()
   userId!: string;
   @IsString()
+  @IsIn(TIPOS_AURICOS)
   tipo_aurico!: string;
   @IsString()
   aura!: string;

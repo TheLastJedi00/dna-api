@@ -4,9 +4,9 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { GeminiProvider } from './gemini/gemini.provider';
-import { UsersService } from 'src/users/users.service';
-import { HumanDesignService } from 'src/human-design/human-design.service';
-import { PromptsService } from 'src/prompts/prompts.service';
+import { UsersService } from '../users/users.service';
+import { HumanDesignService } from '../human-design/human-design.service';
+import { PromptsService } from '../prompts/prompts.service';
 import {
   HumanDesignModuleType,
   Supply,
@@ -16,9 +16,9 @@ import {
   validPerfectPlainModules,
 } from './entities/supply.entity';
 import { SupplyRepository } from './supply.repository';
-import { NumerologyService } from 'src/numerology/numerology.service';
-import { AstrologyService } from 'src/astrology/astrology.service';
-import { CacheService } from 'src/redis/cache.service';
+import { NumerologyService } from '../numerology/numerology.service';
+import { AstrologyService } from '../astrology/astrology.service';
+import { CacheService } from '../redis/cache.service';
 
 const SUPPLY_CACHE_TTL = 60 * 60; // 1h
 

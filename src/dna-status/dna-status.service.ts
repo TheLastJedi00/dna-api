@@ -1,9 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { HumanDesignService } from '../human-design/human-design.service';
 import { DnaStatus } from './entities/dna-status.entity';
-import { NumerologyService } from 'src/numerology/numerology.service';
-import { AstrologyService } from 'src/astrology/astrology.service';
-import { CacheService } from 'src/redis/cache.service';
+import { NumerologyService } from '../numerology/numerology.service';
+import { AstrologyService } from '../astrology/astrology.service';
+import { CacheService } from '../redis/cache.service';
 
 const DNA_STATUS_TTL = 60; // 1min
 

@@ -30,50 +30,56 @@ export class UsersRepository {
     if (data === undefined) {
       return null;
     }
-    // Preserva o documento completo, incluindo roles e isActive.
-    const user = new User(data as CreateUserDto, id, data.roles);
-    user.isActive = data.isActive ?? true;
-    return user;
+    return this.toEntity(data, id);
+  }
+
+  /** Devolve apenas os documentos cujos ids foram pedidos (ignora inexistentes). */
+  async findByIds(ids: string[]): Promise<User[]> {
+    if (ids.length === 0) {
+      return [];
+    }
+    const snaps = await Promise.all(ids.map((id) => this.db.doc(id).get()));
+    return snaps
+      .filter((snap) => snap.exists && snap.data() !== undefined)
+      .map((snap) => this.toEntity(snap.data()!, snap.id));
   }
 
   /**
-   * Lista usuários ativos com role USER, ordenados.
-   * Consulta apenas por `roles array-contains USER` (índice de array
-   * automático do Firestore) e aplica `isActive` + ordenação EM MEMÓRIA, para
-   * não exigir um índice composto (roles + isActive + <orderBy>).
+   * Devolve todos os perfis com a role informada (Maestras = USER, Analistas =
+   * ANALYST) como entidades completas. Consulta apenas por `roles
+   * array-contains <role>` (índice de array automático do Firestore);
+   * status/busca/ordenação/paginação ficam no service (em memória), evitando
+   * exigir índice composto. Adequado ao volume esperado.
    */
-  async findAllActiveUsers(orderBy: string, direction: string) {
-    const snap = await this.db
-      .where('roles', 'array-contains', 'USER')
-      .get();
+  async findAllWithRole(role: string): Promise<User[]> {
+    const snap = await this.db.where('roles', 'array-contains', role).get();
 
     if (snap.empty) {
       return [];
     }
 
-    const users = snap.docs
-      .map((s) => {
-        const data = s.data();
-        const user = new User(data as CreateUserDto, data.id, data.roles);
-        user.isActive = data.isActive ?? true;
-        return user;
-      })
-      .filter((user) => user.isActive);
-
-    const dir = direction === 'desc' ? -1 : 1;
-    users.sort((a, b) => {
-      const av = (a as unknown as Record<string, unknown>)[orderBy];
-      const bv = (b as unknown as Record<string, unknown>)[orderBy];
-      if (av == null && bv == null) return 0;
-      if (av == null) return 1;
-      if (bv == null) return -1;
-      return String(av).localeCompare(String(bv)) * dir;
-    });
-
-    return users;
+    return snap.docs.map((s) => this.toEntity(s.data(), s.id));
   }
 
-  async update(id: string, user: User) {
+  /**
+   * Monta a entidade a partir do documento cru, sem descartar campos
+   * (`roles`, `isActive`, `createdBy`, `email`). Usa o id do próprio documento,
+   * que é a chave real — o campo `id` do payload pode não existir.
+   */
+  private toEntity(data: admin.firestore.DocumentData, id: string): User {
+    const user = new User(data as CreateUserDto, id, data.roles);
+    user.isActive = data.isActive ?? true;
+    user.createdBy = data.createdBy;
+    user.email = data.email;
+    return user;
+  }
+
+  /**
+   * Persiste o estado completo da entidade (sobrescreve o documento) e devolve
+   * a instância gravada. `await` garantido antes do retorno; nenhum campo é
+   * descartado porque `user` é a entidade completa carregada em `findById`.
+   */
+  async update(id: string, user: User): Promise<User> {
     await this.db.doc(id).set(instanceToPlain(user));
     return user;
   }
