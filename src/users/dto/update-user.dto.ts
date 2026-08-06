@@ -1,4 +1,6 @@
-import { IsNotEmpty, IsOptional, IsString } from 'class-validator';
+import { IsIn, IsNotEmpty, IsOptional, IsString } from 'class-validator';
+import { PRONOUNS } from '../pronoun';
+import type { Pronoun } from '../pronoun';
 
 /**
  * Edição de Maestra: apenas os campos de perfil. `login`/`roles` não são
@@ -25,4 +27,14 @@ export class UpdateUserDto {
   @IsString()
   @IsNotEmpty()
   birthPlace?: string;
+
+  /** Texto livre; string vazia limpa o campo. */
+  @IsOptional()
+  @IsString()
+  businessArea?: string;
+
+  @IsOptional()
+  @IsString()
+  @IsIn(PRONOUNS)
+  pronoun?: Pronoun;
 }
