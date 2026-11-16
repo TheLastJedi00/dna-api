@@ -11,6 +11,6 @@ import { AuthModule } from '../auth/auth.module';
   // coleção `users` (roles: ANALYST) — o módulo de Analistas reusa este
   // repositório em vez de abrir um segundo acesso à mesma coleção.
   exports: [UsersService, UsersRepository],
-  imports: [AuthModule]
+  imports: [AuthModule],
 })
 export class UsersModule {}

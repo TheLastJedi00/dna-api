@@ -89,4 +89,3 @@ export class CreateNumerologyDto {
   @Type(() => ExtrasNumerologicosDto)
   extras!: ExtrasNumerologicosDto;
 }
-

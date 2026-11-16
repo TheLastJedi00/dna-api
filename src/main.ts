@@ -7,8 +7,7 @@ import './firebase/firebase.module';
 
 async function bootstrap() {
   // O header Origin do navegador nunca traz barra final, então normalizamos.
-  const origins = process.env.ALLOWED_ORIGINS
-    ?.split(',')
+  const origins = process.env.ALLOWED_ORIGINS?.split(',')
     .map((o) => o.trim().replace(/\/+$/, ''))
     .filter(Boolean);
   const port = process.env.PORT ?? 8080;

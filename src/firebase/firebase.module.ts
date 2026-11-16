@@ -20,4 +20,4 @@ export const firestore = admin.firestore();
 
 @Global()
 @Module({})
-export class FirebaseModule{}
+export class FirebaseModule {}

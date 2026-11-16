@@ -27,9 +27,7 @@ import { AnalystsModule } from './analysts/analysts.module';
         const url = process.env.REDIS_URL;
         return {
           throttlers: [{ name: 'default', ttl: 60_000, limit: 120 }],
-          storage: url
-            ? new ThrottlerStorageRedisService(url)
-            : undefined,
+          storage: url ? new ThrottlerStorageRedisService(url) : undefined,
         };
       },
     }),

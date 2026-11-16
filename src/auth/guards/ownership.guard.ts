@@ -31,8 +31,6 @@ export class OwnershipGuard implements CanActivate {
       return true;
     }
 
-    throw new ForbiddenException(
-      'Você só pode acessar os próprios dados.',
-    );
+    throw new ForbiddenException('Você só pode acessar os próprios dados.');
   }
 }

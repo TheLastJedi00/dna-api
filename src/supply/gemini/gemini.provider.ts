@@ -46,7 +46,7 @@ export class GeminiProvider {
         throw new Error('[Gemini Provider] Nenhuma resposta encontrada');
       }
       const json: any[] = JSON.parse(responseData);
-      let topics: Topic[] = json.map((data) => new Topic(data));
+      const topics: Topic[] = json.map((data) => new Topic(data));
       return topics;
     } catch (e: any) {
       Logger.error(
