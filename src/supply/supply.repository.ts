@@ -2,7 +2,11 @@ import { Injectable } from '@nestjs/common';
 import { Supply, Topic } from './entities/supply.entity';
 import * as admin from 'firebase-admin';
 import { firestore } from '../firebase/firebase.module';
-import { instanceToPlain, plainToClass, plainToInstance } from 'class-transformer';
+import {
+  instanceToPlain,
+  plainToClass,
+  plainToInstance,
+} from 'class-transformer';
 
 @Injectable()
 export class SupplyRepository {
@@ -46,9 +50,12 @@ export class SupplyRepository {
     );
   }
 
-  async findByUserAndPillar(userId, pillar){
-    const snap = await this.db.where('pillar','==',pillar).where('userId','==',userId).get();
-    if(snap.empty){
+  async findByUserAndPillar(userId, pillar) {
+    const snap = await this.db
+      .where('pillar', '==', pillar)
+      .where('userId', '==', userId)
+      .get();
+    if (snap.empty) {
       return null;
     }
     const supplies = snap.docs.map((d) => {

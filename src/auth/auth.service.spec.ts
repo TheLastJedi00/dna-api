@@ -54,7 +54,7 @@ describe('AuthService — senha temporária', () => {
     };
     service = new AuthService(
       repo as any,
-      bcrypt as any,
+      bcrypt,
       jwt as any,
       refreshStore as any,
     );
@@ -190,7 +190,9 @@ describe('AuthService — senha temporária', () => {
           email: 'ana@dna.com',
           password: 'provisoria',
         }),
-      ).rejects.toThrow('Senha temporária expirada. Peça uma nova ao seu gestor.');
+      ).rejects.toThrow(
+        'Senha temporária expirada. Peça uma nova ao seu gestor.',
+      );
       // A comparação nem chega a acontecer: o prazo barra antes.
       expect(bcrypt.compare).not.toHaveBeenCalled();
     });

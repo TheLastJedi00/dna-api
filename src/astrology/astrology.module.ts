@@ -6,6 +6,6 @@ import { AstrologyRepository } from './astrology.repository';
 @Module({
   controllers: [AstrologyController],
   providers: [AstrologyService, AstrologyRepository],
-  exports:  [AstrologyService]
+  exports: [AstrologyService],
 })
 export class AstrologyModule {}

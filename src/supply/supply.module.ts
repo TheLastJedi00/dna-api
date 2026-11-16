@@ -10,8 +10,14 @@ import { NumerologyModule } from '../numerology/numerology.module';
 import { AstrologyModule } from '../astrology/astrology.module';
 
 @Module({
-    controllers: [SupplyController],
-    providers: [SupplyService, GeminiProvider, SupplyRepository],
-    imports: [UsersModule, HumanDesignModule, PromptsModule, NumerologyModule, AstrologyModule]
+  controllers: [SupplyController],
+  providers: [SupplyService, GeminiProvider, SupplyRepository],
+  imports: [
+    UsersModule,
+    HumanDesignModule,
+    PromptsModule,
+    NumerologyModule,
+    AstrologyModule,
+  ],
 })
 export class SupplyModule {}

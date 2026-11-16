@@ -3,7 +3,11 @@ export class DnaStatus {
   numerology: boolean = false;
   astrology: boolean = false;
 
-  constructor(humanDesign?: boolean, numerology?: boolean, astrology?: boolean) {
+  constructor(
+    humanDesign?: boolean,
+    numerology?: boolean,
+    astrology?: boolean,
+  ) {
     this.human_design = humanDesign || false;
     this.numerology = numerology || false;
     this.astrology = astrology || false;

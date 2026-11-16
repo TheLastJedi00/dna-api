@@ -17,7 +17,8 @@ import { JwtService } from '@nestjs/jwt';
 import { JwtPayload } from './entities/payload.entity';
 import { RefreshTokenStore } from './refresh-token.store';
 
-const REFRESH_TTL_SECONDS = Number(process.env.JWT_REFRESH_TTL_SECONDS) || 60 * 60 * 24 * 7;
+const REFRESH_TTL_SECONDS =
+  Number(process.env.JWT_REFRESH_TTL_SECONDS) || 60 * 60 * 24 * 7;
 
 type RefreshPayload = JwtPayload & { jti?: string };
 
@@ -156,13 +157,19 @@ export class AuthService {
   async refresh(refreshToken: string) {
     let decoded: RefreshPayload;
     try {
-      decoded = await this.jwtService.verifyAsync<RefreshPayload>(refreshToken, {
-        secret: this.refreshSecret(),
-      });
+      decoded = await this.jwtService.verifyAsync<RefreshPayload>(
+        refreshToken,
+        {
+          secret: this.refreshSecret(),
+        },
+      );
     } catch {
       throw new UnauthorizedException('Refresh token inválido ou expirado.');
     }
-    if (!decoded.jti || !(await this.refreshStore.isValid(decoded.id, decoded.jti))) {
+    if (
+      !decoded.jti ||
+      !(await this.refreshStore.isValid(decoded.id, decoded.jti))
+    ) {
       throw new UnauthorizedException('Sessão revogada. Faça login novamente.');
     }
     await this.refreshStore.revoke(decoded.id, decoded.jti);

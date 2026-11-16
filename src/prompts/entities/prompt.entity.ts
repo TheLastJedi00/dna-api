@@ -1,9 +1,9 @@
 export class Prompt {
-    pillar!: string;
-    module!: string
-    prompt!: string
+  pillar!: string;
+  module!: string;
+  prompt!: string;
 
-    constructor(partial: Partial<{}>){
-        return Object.assign(this, partial)
-    }
+  constructor(partial: Partial<{}>) {
+    return Object.assign(this, partial);
+  }
 }

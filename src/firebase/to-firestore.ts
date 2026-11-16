@@ -1,14 +1,14 @@
 import { instanceToPlain } from 'class-transformer';
 
-type FirestoreData = { [key: string]: any };
+export type FirestoreData = { [key: string]: unknown };
 
 function isPlainObject(value: unknown): value is FirestoreData {
   if (value === null || typeof value !== 'object') return false;
-  const proto = Object.getPrototypeOf(value);
+  const proto: unknown = Object.getPrototypeOf(value);
   return proto === Object.prototype || proto === null;
 }
 
-function stripUndefined(value: any): any {
+function stripUndefined(value: unknown): unknown {
   if (Array.isArray(value)) {
     return value.filter((item) => item !== undefined).map(stripUndefined);
   }
@@ -33,5 +33,5 @@ function stripUndefined(value: any): any {
  * Aqui a chave ausente simplesmente não é gravada; `null` continua valendo.
  */
 export function toFirestoreData(entity: object): FirestoreData {
-  return stripUndefined(instanceToPlain(entity));
+  return stripUndefined(instanceToPlain(entity)) as FirestoreData;
 }

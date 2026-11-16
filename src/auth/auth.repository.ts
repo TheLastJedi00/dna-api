@@ -1,8 +1,8 @@
-import { Injectable } from "@nestjs/common";
-import * as admin from "firebase-admin"
-import { firestore } from "../firebase/firebase.module";
-import { instanceToPlain, plainToInstance } from "class-transformer";
-import { Auth } from "./entities/auth.entity";
+import { Injectable } from '@nestjs/common';
+import * as admin from 'firebase-admin';
+import { firestore } from '../firebase/firebase.module';
+import { instanceToPlain, plainToInstance } from 'class-transformer';
+import { Auth } from './entities/auth.entity';
 
 @Injectable()
 export class AuthRepository {
@@ -13,9 +13,9 @@ export class AuthRepository {
   }
 
   async create(user: Auth) {
-      const plain = instanceToPlain(user);
-      await this.db.doc(user.id).set(plain);
-      return {id: user.id}
+    const plain = instanceToPlain(user);
+    await this.db.doc(user.id).set(plain);
+    return { id: user.id };
   }
 
   /**
@@ -36,11 +36,11 @@ export class AuthRepository {
 
   async findByEmail(email: string) {
     const snap = await this.db.where('email', '==', email).limit(1).get();
-    if(snap.empty){
-      return null
+    if (snap.empty) {
+      return null;
     }
-    const data = snap.docs[0].data()
-    const auth = plainToInstance(Auth, data)
-    return auth
+    const data = snap.docs[0].data();
+    const auth = plainToInstance(Auth, data);
+    return auth;
   }
 }

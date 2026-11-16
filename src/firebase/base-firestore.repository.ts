@@ -1,7 +1,8 @@
 import { InternalServerErrorException } from '@nestjs/common';
-import { instanceToPlain, plainToInstance } from 'class-transformer';
+import { plainToInstance } from 'class-transformer';
 import * as admin from 'firebase-admin';
 import { firestore } from './firebase.module';
+import { toFirestoreData } from './to-firestore';
 
 type Ctor<T> = new (...args: any[]) => T;
 
@@ -23,7 +24,7 @@ export abstract class BaseFirestoreRepository<T extends { id: string }> {
 
   async create(item: T): Promise<void> {
     try {
-      await this.db.doc(item.id).set(instanceToPlain(item));
+      await this.db.doc(item.id).set(toFirestoreData(item));
     } catch (e) {
       throw new InternalServerErrorException('Erro ao gravar documento.', {
         cause: e as Error,
@@ -49,9 +50,7 @@ export abstract class BaseFirestoreRepository<T extends { id: string }> {
 
   async update(id: string, partial: Partial<T>): Promise<void> {
     try {
-      await this.db
-        .doc(id)
-        .update(instanceToPlain(partial) as { [key: string]: any });
+      await this.db.doc(id).update(toFirestoreData(partial));
     } catch (e) {
       throw new InternalServerErrorException('Erro ao atualizar documento.', {
         cause: e as Error,

@@ -39,7 +39,10 @@ export class Astrology {
   }
 
   toPrompt(): string {
-    const formatPonto = (nome: string, p: PontoAstrologico | undefined): string => {
+    const formatPonto = (
+      nome: string,
+      p: PontoAstrologico | undefined,
+    ): string => {
       if (!p) return `  ${nome}: Não informado`;
       return `  ${nome}: Signo ${p.signo || ''}, Casa ${p.casaAstrologica ?? ''}, Planetas ${p.planetas || 'Nenhum'}`;
     };

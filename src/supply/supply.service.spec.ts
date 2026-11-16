@@ -18,10 +18,16 @@ describe('SupplyService — perfect-plain', () => {
 
   beforeEach(() => {
     gemini = {
-      generateTopics: jest.fn().mockResolvedValue([{ title: 't', items: ['i'] }]),
+      generateTopics: jest
+        .fn()
+        .mockResolvedValue([{ title: 't', items: ['i'] }]),
     };
-    hd = { findOneByUser: jest.fn().mockResolvedValue({ toPrompt: () => 'HD' }) };
-    num = { findOneByUser: jest.fn().mockResolvedValue({ toPrompt: () => 'NUM' }) };
+    hd = {
+      findOneByUser: jest.fn().mockResolvedValue({ toPrompt: () => 'HD' }),
+    };
+    num = {
+      findOneByUser: jest.fn().mockResolvedValue({ toPrompt: () => 'NUM' }),
+    };
     astro = {
       findOneByUser: jest.fn().mockResolvedValue({ toPrompt: () => 'ASTRO' }),
     };
@@ -71,13 +77,20 @@ describe('SupplyService — perfect-plain', () => {
   it('nega geração se algum dos 3 pilares não existir (pré-condição)', async () => {
     num.findOneByUser.mockRejectedValue(new Error('not found'));
     await expect(
-      service.createModuleByUserIdAndPillar('u1', 'perfect-plain', 'perfect-plain'),
+      service.createModuleByUserIdAndPillar(
+        'u1',
+        'perfect-plain',
+        'perfect-plain',
+      ),
     ).rejects.toBeInstanceOf(ConflictException);
     expect(gemini.generateTopics).not.toHaveBeenCalled();
   });
 
   it('createFullPillarByUserId gera o módulo único de perfect-plain', async () => {
-    const result = await service.createFullPillarByUserId('u1', 'perfect-plain');
+    const result = await service.createFullPillarByUserId(
+      'u1',
+      'perfect-plain',
+    );
     expect(result).toHaveLength(1);
     expect(gemini.generateTopics).toHaveBeenCalledTimes(1);
   });

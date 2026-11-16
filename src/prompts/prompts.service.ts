@@ -13,13 +13,19 @@ export class PromptsService {
   ) {}
 
   async findByPillar(pillar: string) {
-    return this.cache.getOrSet(`prompt:pillar:${pillar}`, PROMPT_TTL, async () => {
-      const prompt = await this.repository.findPromptByPillar(pillar);
-      if (!prompt) {
-        throw new NotFoundException(`Prompt for "${pillar}" Pillar not found.`);
-      }
-      return prompt;
-    });
+    return this.cache.getOrSet(
+      `prompt:pillar:${pillar}`,
+      PROMPT_TTL,
+      async () => {
+        const prompt = await this.repository.findPromptByPillar(pillar);
+        if (!prompt) {
+          throw new NotFoundException(
+            `Prompt for "${pillar}" Pillar not found.`,
+          );
+        }
+        return prompt;
+      },
+    );
   }
 
   async findByPillarAndModule(pillar: string, module: string) {

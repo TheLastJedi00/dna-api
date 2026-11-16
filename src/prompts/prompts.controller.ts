@@ -23,6 +23,8 @@ export class PromptsController {
   @HttpCode(HttpStatus.CREATED)
   async createManyPrompts(@Body() body: CreatePromptsBatchDto) {
     await this.service.createManyPrompts(body.prompts);
-    return { message: `${body.prompts.length} prompt(s) criado(s) com sucesso.` };
+    return {
+      message: `${body.prompts.length} prompt(s) criado(s) com sucesso.`,
+    };
   }
 }

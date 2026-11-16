@@ -55,4 +55,3 @@ export class NumerologyController {
     return await this.numerologyService.remove(id);
   }
 }
-

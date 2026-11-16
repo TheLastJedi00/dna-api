@@ -16,22 +16,26 @@ export class PromptsRepository {
       return null;
     }
     const docs = snap.docs;
-    const prompts = docs.map(d => plainToInstance(Prompt, d.data()))
+    const prompts = docs.map((d) => plainToInstance(Prompt, d.data()));
     return prompts;
   }
 
   async findByPillarAndModule(pillar: string, module: string) {
-    const snap = await this.db.where("pillar","==",pillar).where("module","==",module).limit(1).get();
-    if(snap.empty){
-      return null
+    const snap = await this.db
+      .where('pillar', '==', pillar)
+      .where('module', '==', module)
+      .limit(1)
+      .get();
+    if (snap.empty) {
+      return null;
     }
     const doc = snap.docs[0].data();
-    const prompt = plainToInstance(Prompt, doc)
+    const prompt = plainToInstance(Prompt, doc);
     return prompt;
   }
 
-  async createPrompt(prompt: Prompt){
-    return this.db.doc().set(prompt)
+  async createPrompt(prompt: Prompt) {
+    return this.db.doc().set(prompt);
   }
 
   async createManyPrompts(prompts: Prompt[]) {
