@@ -1,11 +1,14 @@
 import { Type } from 'class-transformer';
 import {
   IsEmail,
+  IsIn,
   IsNotEmpty,
   IsOptional,
   IsString,
   ValidateNested,
 } from 'class-validator';
+import { PRONOUNS } from '../pronoun';
+import type { Pronoun } from '../pronoun';
 
 export class UserLoginDto {
   @IsEmail()
@@ -41,4 +44,15 @@ export class CreateUserDto {
   @IsString()
   @IsNotEmpty()
   birthPlace!: string;
+
+  /** Ramo/segmento da empresa. Texto livre. */
+  @IsOptional()
+  @IsString()
+  businessArea?: string;
+
+  /** Ausente => `'feminino'` (retro-compatibilidade). */
+  @IsOptional()
+  @IsString()
+  @IsIn(PRONOUNS)
+  pronoun?: Pronoun;
 }
