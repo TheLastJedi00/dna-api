@@ -1,5 +1,6 @@
 import { IsArray, IsNumber, IsString, ValidateNested } from 'class-validator';
 import { Type } from 'class-transformer';
+import { IsNumberOrString } from '../../common/is-number-or-string.validator';
 
 export class PerfilNumerologicoDto {
   @IsNumber()
@@ -23,6 +24,8 @@ export class PerfilNumerologicoDto {
 export class PeriodoNumerologicoDto {
   @IsNumber()
   inicio!: number;
+  /** Idade em que o período termina, ou texto no último (ex.: "em diante"). */
+  @IsNumberOrString()
   fim!: number | string;
   @IsNumber()
   numero!: number;
