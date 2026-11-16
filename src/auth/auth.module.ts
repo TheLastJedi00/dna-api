@@ -18,18 +18,20 @@ import { RefreshTokenStore } from './refresh-token.store';
     RefreshTokenStore,
   ],
   exports: [AuthService],
-  imports: [JwtModule.registerAsync({
-    global: true,
-    inject: [ConfigService],
-    useFactory:  (configService: ConfigService) => {
-      return {
-        secret: configService.get<string>('JWT_SECRET'),
-        signOptions: {
-          expiresIn: (configService.get<string>('JWT_ACCESS_EXPIRES') ??
-            '15m') as any,
-        },
-      }
-    },
-  })]
+  imports: [
+    JwtModule.registerAsync({
+      global: true,
+      inject: [ConfigService],
+      useFactory: (configService: ConfigService) => {
+        return {
+          secret: configService.get<string>('JWT_SECRET'),
+          signOptions: {
+            expiresIn: (configService.get<string>('JWT_ACCESS_EXPIRES') ??
+              '15m') as any,
+          },
+        };
+      },
+    }),
+  ],
 })
 export class AuthModule {}

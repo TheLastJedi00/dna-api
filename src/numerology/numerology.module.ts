@@ -9,4 +9,3 @@ import { NumerologyRepository } from './numerology.repository';
   exports: [NumerologyService],
 })
 export class NumerologyModule {}
-

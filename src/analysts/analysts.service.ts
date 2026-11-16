@@ -4,7 +4,11 @@ import { AuthService } from '../auth/auth.service';
 import { isTempPasswordExpired } from '../auth/entities/auth.entity';
 import { User } from '../users/entities/user.entity';
 import { Roles } from '../enums/role.enum';
-import { applyListQuery, assertDirection, ListQuery } from '../common/list-query';
+import {
+  applyListQuery,
+  assertDirection,
+  ListQuery,
+} from '../common/list-query';
 import { CreateAnalystDto } from './dto/create-analyst.dto';
 import { UpdateAnalystDto } from './dto/update-analyst.dto';
 

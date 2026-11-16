@@ -33,7 +33,7 @@ function makeUser(fullName: string, isActive = true, id = fullName): User {
       birthDate: '2000-01-01',
       birthTime: '00:00',
       birthPlace: 'Floripa-SC',
-    } as any,
+    },
     id,
     ['USER'],
   );
@@ -213,7 +213,7 @@ describe('UsersService — CRUD de Maestras', () => {
           birthTime: '00:00',
           birthPlace: 'Floripa-SC',
           login: { email: 'ana@dna.com', password: 'x' },
-        } as any,
+        },
         'analyst-1',
       );
 

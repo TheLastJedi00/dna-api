@@ -100,7 +100,7 @@ export class SupplyService {
   }
 
   async createFullPillarByUserId(userId: string, pillar: string) {
-    let createdModules: Supply[] = [];
+    const createdModules: Supply[] = [];
     let modules;
     switch (pillar) {
       case 'human-design':
@@ -138,12 +138,12 @@ export class SupplyService {
     }
     const validModulesMap: Record<string, string[]> = {
       'human-design': validHumanDesignModules,
-      'numerology': validNumerologyModules,
-      'astrology': validAstrologyModules,
+      numerology: validNumerologyModules,
+      astrology: validAstrologyModules,
       'perfect-plain': validPerfectPlainModules,
     };
     const expectedModules = validModulesMap[pillar];
-    return expectedModules.every((e) => supplies.some((s) => s.module === e))
+    return expectedModules.every((e) => supplies.some((s) => s.module === e));
   }
 
   async findHumanDesignModuleByUserId(

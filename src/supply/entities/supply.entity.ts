@@ -148,7 +148,7 @@ export class Supply {
   }
 
   validateModuleByPillar(pillar: string, module) {
-    switch(pillar){
+    switch (pillar) {
       case 'human-design':
         return this.validateHumanDesignModule(module);
       case 'numerology':

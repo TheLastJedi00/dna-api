@@ -1,7 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { firestore } from '../firebase/firebase.module';
+import { toFirestoreData } from '../firebase/to-firestore';
 import { User } from './entities/user.entity';
-import { instanceToPlain, plainToInstance } from 'class-transformer';
+import { plainToInstance } from 'class-transformer';
 import * as admin from 'firebase-admin';
 import { CreateUserDto } from './dto/create-user.dto';
 
@@ -14,8 +15,7 @@ export class UsersRepository {
 
   async create(user: User) {
     try {
-      const plain = instanceToPlain(user);
-      await this.db.doc(user.id).set(plain);
+      await this.db.doc(user.id).set(toFirestoreData(user));
     } catch (e) {
       throw new Error('[Repository Error]: ' + e);
     }
@@ -67,7 +67,7 @@ export class UsersRepository {
    * que é a chave real — o campo `id` do payload pode não existir.
    */
   private toEntity(data: admin.firestore.DocumentData, id: string): User {
-    const user = new User(data as CreateUserDto, id, data.roles);
+    const user = new User(data, id, data.roles);
     user.isActive = data.isActive ?? true;
     user.createdBy = data.createdBy;
     user.email = data.email;
@@ -80,7 +80,8 @@ export class UsersRepository {
    * descartado porque `user` é a entidade completa carregada em `findById`.
    */
   async update(id: string, user: User): Promise<User> {
-    await this.db.doc(id).set(instanceToPlain(user));
+    // Documentos antigos voltam sem createdBy/email/businessArea (undefined).
+    await this.db.doc(id).set(toFirestoreData(user));
     return user;
   }
 }
