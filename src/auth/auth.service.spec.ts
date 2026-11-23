@@ -17,6 +17,7 @@ describe('AuthService — contas no Firebase Auth', () => {
     createUser: jest.Mock;
     setCustomUserClaims: jest.Mock;
     deleteUser: jest.Mock;
+    getUser: jest.Mock;
   };
 
   beforeEach(() => {
@@ -30,6 +31,7 @@ describe('AuthService — contas no Firebase Auth', () => {
       createUser: jest.fn().mockResolvedValue({ uid: 'uid-novo' }),
       setCustomUserClaims: jest.fn().mockResolvedValue(undefined),
       deleteUser: jest.fn().mockResolvedValue(undefined),
+      getUser: jest.fn(),
     };
     service = new AuthService(repo as any, firebaseAuth as any);
   });
@@ -81,6 +83,48 @@ describe('AuthService — contas no Firebase Auth', () => {
         Object.assign(new Error('nf'), { code: 'auth/user-not-found' }),
       );
       await expect(service.removeAccount('uid-1')).resolves.toBeUndefined();
+    });
+  });
+
+  describe('findAccount (status do acesso)', () => {
+    const record = (emailVerified: boolean, lastSignInTime: string | null) => ({
+      uid: 'uid-1',
+      email: 'ana@dna.com',
+      emailVerified,
+      metadata: { lastSignInTime },
+    });
+
+    it('nunca entrou e e-mail não verificado → convite pendente', async () => {
+      firebaseAuth.getUser.mockResolvedValue(record(false, null));
+      await expect(service.findAccount('uid-1')).resolves.toEqual({
+        email: 'ana@dna.com',
+        accessStatus: 'invite_pending',
+      });
+    });
+
+    it('já entrou mas não confirmou o e-mail → e-mail não verificado', async () => {
+      firebaseAuth.getUser.mockResolvedValue(
+        record(false, 'Mon, 23 Nov 2026 10:00:00 GMT'),
+      );
+      await expect(service.findAccount('uid-1')).resolves.toMatchObject({
+        accessStatus: 'email_unverified',
+      });
+    });
+
+    it('e-mail confirmado → ativo', async () => {
+      firebaseAuth.getUser.mockResolvedValue(
+        record(true, 'Mon, 23 Nov 2026 10:00:00 GMT'),
+      );
+      await expect(service.findAccount('uid-1')).resolves.toMatchObject({
+        accessStatus: 'active',
+      });
+    });
+
+    it('conta inexistente no Firebase → null', async () => {
+      firebaseAuth.getUser.mockRejectedValue(
+        Object.assign(new Error('nf'), { code: 'auth/user-not-found' }),
+      );
+      await expect(service.findAccount('uid-1')).resolves.toBeNull();
     });
   });
 });

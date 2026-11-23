@@ -9,6 +9,19 @@ function firebaseErrorCode(e: unknown): string | undefined {
     : undefined;
 }
 
+/**
+ * Situação do acesso de uma conta, para o gestor (spec 010):
+ * - `invite_pending`: nunca entrou (ainda não definiu a senha pelo convite)
+ * - `email_unverified`: já entrou, mas não confirmou o e-mail
+ * - `active`: e-mail confirmado
+ */
+export type AccessStatus = 'invite_pending' | 'email_unverified' | 'active';
+
+export interface AccountInfo {
+  email: string | null;
+  accessStatus: AccessStatus;
+}
+
 @Injectable()
 export class AuthService {
   constructor(
@@ -54,6 +67,26 @@ export class AuthService {
         throw e;
       }
     }
+  }
+
+  /** E-mail e status do acesso, lidos do Firebase. `null` se não há conta. */
+  async findAccount(id: string): Promise<AccountInfo | null> {
+    let record: Awaited<ReturnType<FirebaseAuthAdapter['getUser']>>;
+    try {
+      record = await this.firebaseAuth.getUser(id);
+    } catch (e) {
+      if (firebaseErrorCode(e) === 'auth/user-not-found') {
+        return null;
+      }
+      throw e;
+    }
+    let accessStatus: AccessStatus = 'active';
+    if (!record.emailVerified) {
+      accessStatus = record.metadata.lastSignInTime
+        ? 'email_unverified'
+        : 'invite_pending';
+    }
+    return { email: record.email ?? null, accessStatus };
   }
 
   /** Credenciais de um id, para compor o detalhe do usuário. */

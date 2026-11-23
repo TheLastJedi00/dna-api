@@ -1,7 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { UsersRepository } from '../users/users.repository';
-import { AuthService } from '../auth/auth.service';
-import { isTempPasswordExpired } from '../auth/entities/auth.entity';
+import { AccessStatus, AuthService } from '../auth/auth.service';
 import { User } from '../users/entities/user.entity';
 import { Roles } from '../enums/role.enum';
 import {
@@ -22,17 +21,15 @@ export interface LinkedMaestra {
   isActive: boolean;
 }
 
-/** Detalhe do Analista: o perfil + as credenciais (spec 005). */
+/** Detalhe do Analista: o perfil + e-mail e status do acesso (spec 010). */
 export type AnalystDetailView = Omit<
   User,
   'disable' | 'enable' | 'applyUpdate' | 'toUserDataPrompt' | 'email'
 > & {
-  /** Vem da coleção `auth` (fonte de verdade), não da cópia no perfil. */
+  /** Vem do Firebase Auth (fonte de verdade), não da cópia no perfil. */
   email: string | null;
-  mustChangePassword: boolean;
-  tempPassword: string | null;
-  /** Até quando a senha provisória vale (ISO 8601); `null` se não há uma. */
-  tempPasswordExpiresAt: string | null;
+  /** `null` quando o perfil não tem conta no Firebase. */
+  accessStatus: AccessStatus | null;
 };
 
 /**
@@ -84,24 +81,14 @@ export class AnalystsService {
     return analyst;
   }
 
-  /**
-   * Detalhe do Analista com as credenciais (e-mail e estado da senha
-   * provisória). Como no caso da Maestra, o `tempPassword` só sai aqui — nunca
-   * na listagem.
-   */
+  /** Detalhe do Analista com e-mail e status do acesso (Firebase). */
   async findOneView(id: string): Promise<AnalystDetailView> {
     const analyst = await this.findOne(id);
-    const credentials = await this.auth.findCredentialsById(id);
-    // Senha vencida não é senha: some da tela do gestor (ver UsersService).
-    const expired = credentials ? isTempPasswordExpired(credentials) : false;
+    const account = await this.auth.findAccount(id);
     return {
       ...analyst,
-      email: credentials?.email ?? analyst.email ?? null,
-      mustChangePassword: credentials?.mustChangePassword ?? false,
-      tempPassword: expired ? null : (credentials?.tempPassword ?? null),
-      tempPasswordExpiresAt: expired
-        ? null
-        : (credentials?.tempPasswordExpiresAt ?? null),
+      email: account?.email ?? analyst.email ?? null,
+      accessStatus: account?.accessStatus ?? null,
     };
   }
 

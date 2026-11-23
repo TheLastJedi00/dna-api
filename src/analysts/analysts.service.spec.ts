@@ -41,7 +41,7 @@ describe('AnalystsService', () => {
   let auth: {
     createAccount: jest.Mock;
     removeAccount: jest.Mock;
-    findCredentialsById: jest.Mock;
+    findAccount: jest.Mock;
   };
 
   beforeEach(() => {
@@ -54,7 +54,7 @@ describe('AnalystsService', () => {
     auth = {
       createAccount: jest.fn().mockResolvedValue({ id: 'uid-bia' }),
       removeAccount: jest.fn().mockResolvedValue(undefined),
-      findCredentialsById: jest.fn().mockResolvedValue(null),
+      findAccount: jest.fn().mockResolvedValue(null),
     };
     service = new AnalystsService(repo as any, auth as any);
   });
@@ -207,32 +207,27 @@ describe('AnalystsService', () => {
     });
   });
 
-  describe('senha temporária (spec 005)', () => {
-    it('o detalhe traz e-mail e o estado da senha, lidos do auth', async () => {
+  describe('status do acesso no detalhe (spec 010)', () => {
+    it('o detalhe traz o e-mail e o status do acesso lidos do Firebase', async () => {
       repo.findById.mockResolvedValue(makeAnalyst('Ana', true, 'a1'));
-      auth.findCredentialsById.mockResolvedValue({
+      auth.findAccount.mockResolvedValue({
         email: 'ana@dna.com',
-        mustChangePassword: true,
-        tempPassword: 'provisoria',
+        accessStatus: 'active',
       });
 
       const view = await service.findOneView('a1');
 
       expect(view.email).toBe('ana@dna.com');
-      expect(view.mustChangePassword).toBe(true);
-      expect(view.tempPassword).toBe('provisoria');
+      expect(view.accessStatus).toBe('active');
+      expect(view).not.toHaveProperty('tempPassword');
     });
 
-    it('a listagem NÃO carrega a senha em texto plano', async () => {
+    it('a listagem não consulta o Firebase', async () => {
       repo.findAllWithRole.mockResolvedValue([makeAnalyst('Ana')]);
 
-      const { items } = await service.findAll({
-        orderBy: 'fullName',
-        direction: 'asc',
-      });
+      await service.findAll({ orderBy: 'fullName', direction: 'asc' });
 
-      expect(items[0]).not.toHaveProperty('tempPassword');
-      expect(auth.findCredentialsById).not.toHaveBeenCalled();
+      expect(auth.findAccount).not.toHaveBeenCalled();
     });
   });
 });

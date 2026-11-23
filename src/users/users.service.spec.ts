@@ -58,7 +58,7 @@ describe('UsersService — CRUD de Maestras', () => {
     createAccount: jest.Mock;
     removeAccount: jest.Mock;
     findEmailById: jest.Mock;
-    findCredentialsById: jest.Mock;
+    findAccount: jest.Mock;
   };
 
   beforeEach(() => {
@@ -73,7 +73,7 @@ describe('UsersService — CRUD de Maestras', () => {
       createAccount: jest.fn(),
       removeAccount: jest.fn().mockResolvedValue(undefined),
       findEmailById: jest.fn().mockResolvedValue(null),
-      findCredentialsById: jest.fn().mockResolvedValue(null),
+      findAccount: jest.fn().mockResolvedValue(null),
     };
     service = new UsersService(repo as any, auth as any);
   });
@@ -415,13 +415,12 @@ describe('UsersService — CRUD de Maestras', () => {
     });
   });
 
-  describe('senha temporária (spec 005)', () => {
-    it('o detalhe traz e-mail e o estado da senha, lidos do auth', async () => {
+  describe('status do acesso no detalhe (spec 010)', () => {
+    it('o detalhe traz o e-mail e o status do acesso lidos do Firebase', async () => {
       repo.findById.mockResolvedValue(maestraOf('Ana', 'analyst-1'));
-      auth.findCredentialsById.mockResolvedValue({
+      auth.findAccount.mockResolvedValue({
         email: 'ana@dna.com',
-        mustChangePassword: true,
-        tempPassword: 'provisoria',
+        accessStatus: 'invite_pending',
       });
 
       const view = await service.findOneView('Ana', {
@@ -429,42 +428,38 @@ describe('UsersService — CRUD de Maestras', () => {
         roles: ['ANALYST'],
       });
 
+      expect(auth.findAccount).toHaveBeenCalledWith('Ana');
       expect(view.email).toBe('ana@dna.com');
-      expect(view.mustChangePassword).toBe(true);
-      expect(view.tempPassword).toBe('provisoria');
+      expect(view.accessStatus).toBe('invite_pending');
+      expect(view).not.toHaveProperty('tempPassword');
+      expect(view).not.toHaveProperty('mustChangePassword');
     });
 
-    it('a listagem NÃO carrega a senha em texto plano', async () => {
-      repo.findAllWithRole.mockResolvedValue([maestraOf('Ana', 'admin-1')]);
-      repo.findByIds.mockResolvedValue([]);
+    it('sem conta no Firebase: status nulo e e-mail da cópia do perfil', async () => {
+      const ana = maestraOf('Ana', 'analyst-1');
+      ana.email = 'copia@dna.com';
+      repo.findById.mockResolvedValue(ana);
+      auth.findAccount.mockResolvedValue(null);
 
-      const { items } = await service.findAllActiveUsers({
+      const view = await service.findOneView('Ana', {
+        id: 'analyst-1',
+        roles: ['ANALYST'],
+      });
+
+      expect(view.email).toBe('copia@dna.com');
+      expect(view.accessStatus).toBeNull();
+    });
+
+    it('a listagem não consulta o Firebase conta a conta', async () => {
+      repo.findAllWithRole.mockResolvedValue([maestraOf('Ana', 'admin-1')]);
+
+      await service.findAllActiveUsers({
         orderBy: 'fullName',
         direction: 'asc',
         ...admin,
       });
 
-      // A senha provisória é credencial em claro: só pode existir no detalhe.
-      expect(items[0]).not.toHaveProperty('tempPassword');
-      expect(auth.findCredentialsById).not.toHaveBeenCalled();
-    });
-
-    it('senha vencida some do detalhe — o gestor pode gerar outra', async () => {
-      repo.findById.mockResolvedValue(maestraOf('Ana', 'analyst-1'));
-      auth.findCredentialsById.mockResolvedValue({
-        email: 'ana@dna.com',
-        mustChangePassword: true,
-        tempPassword: 'provisoria',
-        tempPasswordExpiresAt: new Date(Date.now() - 60_000).toISOString(),
-      });
-
-      const view = await service.findOneView('Ana', {
-        id: 'analyst-1',
-        roles: ['ANALYST'],
-      });
-
-      expect(view.tempPassword).toBeNull();
-      expect(view.tempPasswordExpiresAt).toBeNull();
+      expect(auth.findAccount).not.toHaveBeenCalled();
     });
   });
 });

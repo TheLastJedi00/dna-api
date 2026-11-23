@@ -9,8 +9,7 @@ import { UpdateUserDto } from './dto/update-user.dto';
 import { UserStatusFilter } from './dto/list-users-query.dto';
 import { UsersRepository } from './users.repository';
 import { User } from './entities/user.entity';
-import { AuthService } from '../auth/auth.service';
-import { isTempPasswordExpired } from '../auth/entities/auth.entity';
+import { AccessStatus, AuthService } from '../auth/auth.service';
 import { Roles } from '../enums/role.enum';
 import { applyListQuery, assertDirection } from '../common/list-query';
 
@@ -25,17 +24,15 @@ export type MaestraView = Omit<
 > & { createdByName: string | null };
 
 /**
- * Detalhe da Maestra: a view da listagem + as credenciais (spec 005). O
- * `tempPassword` é senha em texto plano — por isso só existe aqui, no detalhe de
- * quem tem posse da Maestra, e nunca na listagem.
+ * Detalhe da Maestra: a view da listagem + e-mail e status do acesso, lidos do
+ * Firebase Auth (spec 010). Só no detalhe: a listagem não consulta o Firebase
+ * conta a conta.
  */
 export type MaestraDetailView = Omit<MaestraView, 'email'> & {
-  /** Vem da coleção `auth` (fonte de verdade), não da cópia no perfil. */
+  /** Vem do Firebase Auth (fonte de verdade), não da cópia no perfil. */
   email: string | null;
-  mustChangePassword: boolean;
-  tempPassword: string | null;
-  /** Até quando a senha provisória vale (ISO 8601); `null` se não há uma. */
-  tempPasswordExpiresAt: string | null;
+  /** `null` quando o perfil não tem conta no Firebase. */
+  accessStatus: AccessStatus | null;
 };
 
 @Injectable()
@@ -178,28 +175,18 @@ export class UsersService {
     return user;
   }
 
-  /**
-   * Detalhe da Maestra para resposta HTTP: quem a cadastrou + as credenciais
-   * (e-mail e o estado da senha provisória), lidas da coleção `auth`.
-   */
+  /** Detalhe da Maestra para resposta HTTP: criador + e-mail e status do acesso. */
   async findOneView(
     id: string,
     requester: { id: string; roles: string[] },
   ): Promise<MaestraDetailView> {
     const user = await this.findOne(id, requester);
     const [view] = await this.withCreatorNames([user]);
-    const credentials = await this.auth.findCredentialsById(id);
-    // Senha vencida não é senha: some da tela do gestor, e o botão de gerar
-    // outra volta a aparecer.
-    const expired = credentials ? isTempPasswordExpired(credentials) : false;
+    const account = await this.auth.findAccount(id);
     return {
       ...view,
-      email: credentials?.email ?? user.email ?? null,
-      mustChangePassword: credentials?.mustChangePassword ?? false,
-      tempPassword: expired ? null : (credentials?.tempPassword ?? null),
-      tempPasswordExpiresAt: expired
-        ? null
-        : (credentials?.tempPasswordExpiresAt ?? null),
+      email: account?.email ?? user.email ?? null,
+      accessStatus: account?.accessStatus ?? null,
     };
   }
 
