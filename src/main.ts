@@ -3,9 +3,11 @@ import { Logger, ValidationPipe } from '@nestjs/common';
 import helmet from 'helmet';
 import { AppModule } from './app.module';
 import 'dotenv/config';
-import './firebase/firebase.module';
+import { firebaseApp } from './firebase/firebase.module';
 
 async function bootstrap() {
+  // Falha cedo se a service account estiver ausente ou inválida.
+  firebaseApp();
   // O header Origin do navegador nunca traz barra final, então normalizamos.
   const origins = process.env.ALLOWED_ORIGINS?.split(',')
     .map((o) => o.trim().replace(/\/+$/, ''))

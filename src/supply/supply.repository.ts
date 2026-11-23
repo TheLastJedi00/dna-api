@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { Supply, Topic } from './entities/supply.entity';
 import * as admin from 'firebase-admin';
-import { firestore } from '../firebase/firebase.module';
+import { getFirestore } from '../firebase/firebase.module';
 import {
   instanceToPlain,
   plainToClass,
@@ -12,7 +12,7 @@ import {
 export class SupplyRepository {
   private readonly db: admin.firestore.CollectionReference;
   constructor() {
-    this.db = firestore.collection('supplies');
+    this.db = getFirestore().collection('supplies');
   }
 
   async create(supply: Supply) {

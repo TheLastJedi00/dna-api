@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { firestore } from '../firebase/firebase.module';
+import { getFirestore } from '../firebase/firebase.module';
 import { toFirestoreData } from '../firebase/to-firestore';
 import { User } from './entities/user.entity';
 import { plainToInstance } from 'class-transformer';
@@ -10,7 +10,7 @@ import { CreateUserDto } from './dto/create-user.dto';
 export class UsersRepository {
   private readonly db: admin.firestore.CollectionReference;
   constructor() {
-    this.db = firestore.collection('users');
+    this.db = getFirestore().collection('users');
   }
 
   async create(user: User) {

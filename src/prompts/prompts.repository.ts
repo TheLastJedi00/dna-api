@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import * as admin from 'firebase-admin';
-import { firestore } from '../firebase/firebase.module';
+import { getFirestore } from '../firebase/firebase.module';
 import { plainToInstance } from 'class-transformer';
 import { Prompt } from './entities/prompt.entity';
 
@@ -8,7 +8,7 @@ import { Prompt } from './entities/prompt.entity';
 export class PromptsRepository {
   private readonly db: admin.firestore.CollectionReference;
   constructor() {
-    this.db = firestore.collection('prompts');
+    this.db = getFirestore().collection('prompts');
   }
   async findPromptByPillar(pillar: string) {
     const snap = await this.db.where('pillar', '==', pillar).get();
@@ -39,7 +39,7 @@ export class PromptsRepository {
   }
 
   async createManyPrompts(prompts: Prompt[]) {
-    const batch = firestore.batch();
+    const batch = getFirestore().batch();
     for (const prompt of prompts) {
       const ref = this.db.doc();
       batch.set(ref, { ...prompt });
