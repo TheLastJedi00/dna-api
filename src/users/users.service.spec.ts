@@ -58,7 +58,6 @@ describe('UsersService — CRUD de Maestras', () => {
     createAccount: jest.Mock;
     removeAccount: jest.Mock;
     findEmailById: jest.Mock;
-    setTempPassword: jest.Mock;
     findCredentialsById: jest.Mock;
   };
 
@@ -74,7 +73,6 @@ describe('UsersService — CRUD de Maestras', () => {
       createAccount: jest.fn(),
       removeAccount: jest.fn().mockResolvedValue(undefined),
       findEmailById: jest.fn().mockResolvedValue(null),
-      setTempPassword: jest.fn().mockResolvedValue(undefined),
       findCredentialsById: jest.fn().mockResolvedValue(null),
     };
     service = new UsersService(repo as any, auth as any);
@@ -467,29 +465,6 @@ describe('UsersService — CRUD de Maestras', () => {
 
       expect(view.tempPassword).toBeNull();
       expect(view.tempPasswordExpiresAt).toBeNull();
-    });
-
-    it('ANALYST redefine a senha da própria Maestra', async () => {
-      repo.findById.mockResolvedValue(maestraOf('Ana', 'analyst-1'));
-
-      await service.setTempPassword('Ana', 'nova123', {
-        id: 'analyst-1',
-        roles: ['ANALYST'],
-      });
-
-      expect(auth.setTempPassword).toHaveBeenCalledWith('Ana', 'nova123');
-    });
-
-    it('ANALYST não redefine a senha da Maestra de outro (403)', async () => {
-      repo.findById.mockResolvedValue(maestraOf('Bruna', 'analyst-2'));
-
-      await expect(
-        service.setTempPassword('Bruna', 'invadida', {
-          id: 'analyst-1',
-          roles: ['ANALYST'],
-        }),
-      ).rejects.toBeInstanceOf(ForbiddenException);
-      expect(auth.setTempPassword).not.toHaveBeenCalled();
     });
   });
 });

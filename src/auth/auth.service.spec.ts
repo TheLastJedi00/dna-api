@@ -1,12 +1,11 @@
-import { ConflictException, NotFoundException } from '@nestjs/common';
+import { ConflictException } from '@nestjs/common';
 import { AuthService } from './auth.service';
-import { Auth } from './entities/auth.entity';
 
 /**
- * Cadastro e senha provisória (spec 005). Login, refresh e troca de senha
- * saíram na spec 010 (Firebase Auth); o cadastro migra para o Firebase na Fase 2.
+ * Contas no Firebase Auth (spec 010): cadastro por convite (sem senha) e
+ * remoção idempotente. Login, refresh e senha provisória deixaram de existir.
  */
-describe('AuthService — senha temporária', () => {
+describe('AuthService — contas no Firebase Auth', () => {
   let service: AuthService;
   let repo: {
     create: jest.Mock;
@@ -14,23 +13,11 @@ describe('AuthService — senha temporária', () => {
     findById: jest.Mock;
     findByEmail: jest.Mock;
   };
-  let bcrypt: { hash: jest.Mock; compare: jest.Mock };
   let firebaseAuth: {
     createUser: jest.Mock;
     setCustomUserClaims: jest.Mock;
     deleteUser: jest.Mock;
   };
-
-  const credentialsOf = (partial: Partial<Auth> = {}) =>
-    new Auth({
-      id: 'u1',
-      email: 'ana@dna.com',
-      password: 'hash-antigo',
-      roles: ['USER'],
-      mustChangePassword: true,
-      tempPassword: 'provisoria',
-      ...partial,
-    });
 
   beforeEach(() => {
     repo = {
@@ -39,55 +26,12 @@ describe('AuthService — senha temporária', () => {
       findById: jest.fn(),
       findByEmail: jest.fn().mockResolvedValue(null),
     };
-    bcrypt = {
-      hash: jest.fn().mockImplementation((p: string) => `hash(${p})`),
-      compare: jest.fn().mockResolvedValue(true),
-    };
     firebaseAuth = {
       createUser: jest.fn().mockResolvedValue({ uid: 'uid-novo' }),
       setCustomUserClaims: jest.fn().mockResolvedValue(undefined),
       deleteUser: jest.fn().mockResolvedValue(undefined),
     };
-    service = new AuthService(repo as any, bcrypt, firebaseAuth as any);
-  });
-
-  describe('setTempPassword', () => {
-    it('grava o hash, guarda o texto plano e liga a flag', async () => {
-      repo.findById.mockResolvedValue(
-        credentialsOf({ mustChangePassword: false, tempPassword: null }),
-      );
-
-      await service.setTempPassword('u1', 'nova-provisoria');
-
-      expect(repo.update).toHaveBeenCalledWith(
-        'u1',
-        expect.objectContaining({
-          password: 'hash(nova-provisoria)',
-          mustChangePassword: true,
-          tempPassword: 'nova-provisoria',
-        }),
-      );
-    });
-
-    it('404 quando as credenciais não existem', async () => {
-      repo.findById.mockResolvedValue(null);
-      await expect(service.setTempPassword('x', 'y')).rejects.toThrow(
-        NotFoundException,
-      );
-    });
-  });
-
-  describe('expiração da senha provisória (72h)', () => {
-    it('a redefinição pelo painel renova o prazo', async () => {
-      repo.findById.mockResolvedValue(credentialsOf());
-
-      await service.setTempPassword('u1', 'outra-provisoria');
-
-      const changes = repo.update.mock.calls[0][1];
-      expect(new Date(changes.tempPasswordExpiresAt).getTime()).toBeGreaterThan(
-        Date.now(),
-      );
-    });
+    service = new AuthService(repo as any, firebaseAuth as any);
   });
 
   describe('createAccount (convite, spec 010)', () => {

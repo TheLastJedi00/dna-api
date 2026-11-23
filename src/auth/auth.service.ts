@@ -1,11 +1,5 @@
-import {
-  ConflictException,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { ConflictException, Injectable } from '@nestjs/common';
 import { AuthRepository } from './auth.repository';
-import { TEMP_PASSWORD_TTL_MS } from './entities/auth.entity';
-import { BcryptService } from './bcrypt.service';
 import { FirebaseAuthAdapter } from '../firebase/firebase-auth.adapter';
 
 /** Erro do Admin SDK do Firebase: traz um `code` como `auth/user-not-found`. */
@@ -19,7 +13,6 @@ function firebaseErrorCode(e: unknown): string | undefined {
 export class AuthService {
   constructor(
     private readonly repository: AuthRepository,
-    private readonly bcyptService: BcryptService,
     private readonly firebaseAuth: FirebaseAuthAdapter,
   ) {}
 
@@ -61,28 +54,6 @@ export class AuthService {
         throw e;
       }
     }
-  }
-
-  /** Prazo da senha provisória a partir de agora (ISO 8601). */
-  private tempPasswordDeadline(): string {
-    return new Date(Date.now() + TEMP_PASSWORD_TTL_MS).toISOString();
-  }
-
-  /**
-   * Redefinição pelo painel: o gestor digita a senha, ela passa a valer para o
-   * login e fica visível para ele até o usuário definir a própria.
-   */
-  async setTempPassword(id: string, password: string): Promise<void> {
-    const auth = await this.repository.findById(id);
-    if (!auth) {
-      throw new NotFoundException(`Credenciais do ID ${id} não encontradas.`);
-    }
-    await this.repository.update(id, {
-      password: await this.bcyptService.hash(password),
-      mustChangePassword: true,
-      tempPassword: password,
-      tempPasswordExpiresAt: this.tempPasswordDeadline(),
-    });
   }
 
   /** Credenciais de um id, para compor o detalhe do usuário. */

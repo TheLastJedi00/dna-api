@@ -105,12 +105,6 @@ export class AnalystsService {
     };
   }
 
-  /** Redefinição da senha do Analista pelo painel (ADMIN/MANAGER). */
-  async setTempPassword(id: string, password: string): Promise<void> {
-    await this.findOne(id);
-    await this.auth.setTempPassword(id, password);
-  }
-
   async update(id: string, data: UpdateAnalystDto) {
     const analyst = await this.findOne(id);
     analyst.applyUpdate(data);

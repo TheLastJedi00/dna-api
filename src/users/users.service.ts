@@ -204,19 +204,6 @@ export class UsersService {
   }
 
   /**
-   * Redefinição da senha da Maestra pelo painel. A posse é validada antes: um
-   * Analista não pode redefinir a senha da Maestra de outro.
-   */
-  async setTempPassword(
-    id: string,
-    password: string,
-    requester: { id: string; roles: string[] },
-  ): Promise<void> {
-    await this.loadManageable(id, requester);
-    await this.auth.setTempPassword(id, password);
-  }
-
-  /**
    * Posse: Analista e Manager só operam sobre as Maestras que cadastraram;
    * ADMIN é super-usuário. Sem isso, a role sozinha permitiria editar/desativar
    * a Maestra de outro pelo id — o filtro da listagem não protege o acesso

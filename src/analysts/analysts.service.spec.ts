@@ -41,7 +41,6 @@ describe('AnalystsService', () => {
   let auth: {
     createAccount: jest.Mock;
     removeAccount: jest.Mock;
-    setTempPassword: jest.Mock;
     findCredentialsById: jest.Mock;
   };
 
@@ -55,7 +54,6 @@ describe('AnalystsService', () => {
     auth = {
       createAccount: jest.fn().mockResolvedValue({ id: 'uid-bia' }),
       removeAccount: jest.fn().mockResolvedValue(undefined),
-      setTempPassword: jest.fn().mockResolvedValue(undefined),
       findCredentialsById: jest.fn().mockResolvedValue(null),
     };
     service = new AnalystsService(repo as any, auth as any);
@@ -235,23 +233,6 @@ describe('AnalystsService', () => {
 
       expect(items[0]).not.toHaveProperty('tempPassword');
       expect(auth.findCredentialsById).not.toHaveBeenCalled();
-    });
-
-    it('redefine a senha do analista', async () => {
-      repo.findById.mockResolvedValue(makeAnalyst('Ana', true, 'a1'));
-
-      await service.setTempPassword('a1', 'nova123');
-
-      expect(auth.setTempPassword).toHaveBeenCalledWith('a1', 'nova123');
-    });
-
-    it('não redefine a senha de quem não é analista (404)', async () => {
-      repo.findById.mockResolvedValue(makeMaestra('Bruna'));
-
-      await expect(
-        service.setTempPassword('Bruna', 'invadida'),
-      ).rejects.toBeInstanceOf(NotFoundException);
-      expect(auth.setTempPassword).not.toHaveBeenCalled();
     });
   });
 });
