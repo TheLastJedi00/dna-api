@@ -47,15 +47,24 @@ export class AnalystsService {
     private readonly auth: AuthService,
   ) {}
 
+  /**
+   * Cadastro por convite (spec 010): conta no Firebase sem senha + perfil em
+   * `users`. Se o perfil falhar, a conta é desfeita (mesma regra da Maestra).
+   */
   async create(data: CreateAnalystDto) {
     const roles = [Roles.ANALYST];
-    const analystAuth = await this.auth.create(data.login, roles);
+    const { id } = await this.auth.createAccount(data.email, roles);
     const analyst = new User(
-      { fullName: data.fullName, email: data.login.email },
-      analystAuth.id,
+      { fullName: data.fullName, email: data.email },
+      id,
       roles,
     );
-    await this.repository.create(analyst);
+    try {
+      await this.repository.create(analyst);
+    } catch (e) {
+      await this.auth.removeAccount(id);
+      throw e;
+    }
     return analyst;
   }
 

@@ -8,15 +8,6 @@ import {
 import { PRONOUNS } from '../pronoun';
 import type { Pronoun } from '../pronoun';
 
-export class UserLoginDto {
-  @IsEmail()
-  email!: string;
-
-  @IsString()
-  @IsNotEmpty()
-  password!: string;
-}
-
 export class CreateUserDto {
   @IsOptional()
   @IsString()

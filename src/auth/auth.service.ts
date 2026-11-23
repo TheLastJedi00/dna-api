@@ -4,7 +4,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { AuthRepository } from './auth.repository';
-import { Auth, TEMP_PASSWORD_TTL_MS } from './entities/auth.entity';
+import { TEMP_PASSWORD_TTL_MS } from './entities/auth.entity';
 import { BcryptService } from './bcrypt.service';
 import { FirebaseAuthAdapter } from '../firebase/firebase-auth.adapter';
 
@@ -61,29 +61,6 @@ export class AuthService {
         throw e;
       }
     }
-  }
-
-  /**
-   * A senha definida no cadastro **já nasce provisória** (spec 005): vale para o
-   * login, mas o usuário é obrigado a trocá-la no primeiro acesso, e até lá ela
-   * fica visível em texto plano para quem o cadastrou.
-   */
-  async create(data, roles: string[]) {
-    const compareEmail = await this.repository.findByEmail(data.email);
-    if (compareEmail) {
-      throw new ConflictException('Email já cadastrado.');
-    }
-    const hashPass = await this.bcyptService.hash(data.password);
-    const auth = new Auth({
-      ...data,
-      password: hashPass,
-      roles: roles,
-      mustChangePassword: true,
-      tempPassword: data.password,
-      tempPasswordExpiresAt: this.tempPasswordDeadline(),
-    });
-    const created = await this.repository.create(auth);
-    return created;
   }
 
   /** Prazo da senha provisória a partir de agora (ISO 8601). */

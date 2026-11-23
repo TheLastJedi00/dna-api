@@ -51,19 +51,6 @@ describe('AuthService — senha temporária', () => {
     service = new AuthService(repo as any, bcrypt, firebaseAuth as any);
   });
 
-  describe('create', () => {
-    it('a senha do cadastro já nasce provisória', async () => {
-      await service.create({ email: 'ana@dna.com', password: 'inicial' }, [
-        'USER',
-      ]);
-
-      const persisted = repo.create.mock.calls[0][0] as Auth;
-      expect(persisted.password).toBe('hash(inicial)');
-      expect(persisted.tempPassword).toBe('inicial');
-      expect(persisted.mustChangePassword).toBe(true);
-    });
-  });
-
   describe('setTempPassword', () => {
     it('grava o hash, guarda o texto plano e liga a flag', async () => {
       repo.findById.mockResolvedValue(
@@ -91,17 +78,6 @@ describe('AuthService — senha temporária', () => {
   });
 
   describe('expiração da senha provisória (72h)', () => {
-    it('o cadastro grava o prazo', async () => {
-      await service.create({ email: 'ana@dna.com', password: 'inicial' }, [
-        'USER',
-      ]);
-
-      const persisted = repo.create.mock.calls[0][0] as Auth;
-      const deadline = new Date(persisted.tempPasswordExpiresAt!).getTime();
-      const expected = Date.now() + 3 * 24 * 60 * 60 * 1000;
-      expect(Math.abs(deadline - expected)).toBeLessThan(5_000);
-    });
-
     it('a redefinição pelo painel renova o prazo', async () => {
       repo.findById.mockResolvedValue(credentialsOf());
 

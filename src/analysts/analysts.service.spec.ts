@@ -39,7 +39,8 @@ describe('AnalystsService', () => {
     create: jest.Mock;
   };
   let auth: {
-    create: jest.Mock;
+    createAccount: jest.Mock;
+    removeAccount: jest.Mock;
     setTempPassword: jest.Mock;
     findCredentialsById: jest.Mock;
   };
@@ -52,30 +53,37 @@ describe('AnalystsService', () => {
       create: jest.fn(),
     };
     auth = {
-      create: jest.fn().mockResolvedValue({ id: 'auth-1' }),
+      createAccount: jest.fn().mockResolvedValue({ id: 'uid-bia' }),
+      removeAccount: jest.fn().mockResolvedValue(undefined),
       setTempPassword: jest.fn().mockResolvedValue(undefined),
       findCredentialsById: jest.fn().mockResolvedValue(null),
     };
     service = new AnalystsService(repo as any, auth as any);
   });
 
-  describe('create', () => {
-    it('cria o acesso com a role ANALYST e persiste o perfil com o id do auth', async () => {
-      await service.create({
-        fullName: 'Bia',
-        login: { email: 'bia@dna.com', password: 'x' },
-      });
+  describe('create (convite: conta no Firebase sem senha)', () => {
+    it('cria a conta com a role ANALYST e persiste o perfil com o uid', async () => {
+      await expect(
+        service.create({ fullName: 'Bia', email: 'bia@dna.com' }),
+      ).resolves.toMatchObject({ id: 'uid-bia' });
 
-      expect(auth.create).toHaveBeenCalledWith(
-        { email: 'bia@dna.com', password: 'x' },
-        [Roles.ANALYST],
-      );
+      expect(auth.createAccount).toHaveBeenCalledWith('bia@dna.com', [
+        Roles.ANALYST,
+      ]);
       const persisted = repo.create.mock.calls[0][0] as User;
-      expect(persisted.id).toBe('auth-1');
+      expect(persisted.id).toBe('uid-bia');
       expect(persisted.roles).toEqual([Roles.ANALYST]);
       expect(persisted.email).toBe('bia@dna.com');
       expect(persisted.isActive).toBe(true);
       expect(persisted.birthDate).toBeUndefined();
+    });
+
+    it('falha ao gravar o perfil: desfaz a conta no Firebase', async () => {
+      repo.create.mockRejectedValue(new Error('firestore fora'));
+      await expect(
+        service.create({ fullName: 'Bia', email: 'bia@dna.com' }),
+      ).rejects.toThrow('firestore fora');
+      expect(auth.removeAccount).toHaveBeenCalledWith('uid-bia');
     });
   });
 

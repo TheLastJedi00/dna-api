@@ -1,18 +1,16 @@
-import { Type } from 'class-transformer';
-import { IsNotEmpty, IsString, ValidateNested } from 'class-validator';
-import { UserLoginDto } from '../../users/dto/create-user.dto';
+import { IsEmail, IsNotEmpty, IsString } from 'class-validator';
 
 /**
- * Cadastro de Analista: nome + credenciais de acesso. Diferente da Maestra, o
+ * Cadastro de Analista: nome + e-mail de acesso. Diferente da Maestra, o
  * Analista não tem mapa natal — por isso nada de birthDate/birthTime/birthPlace
- * (o `whitelist` do ValidationPipe global descarta o que vier a mais).
+ * (o `whitelist` do ValidationPipe global descarta o que vier a mais). Sem
+ * senha: o acesso é definido pelo convite por e-mail (spec 010).
  */
 export class CreateAnalystDto {
   @IsString()
   @IsNotEmpty()
   fullName!: string;
 
-  @ValidateNested()
-  @Type(() => UserLoginDto)
-  login!: UserLoginDto;
+  @IsEmail({}, { message: 'Formato de e-mail inválido.' })
+  email!: string;
 }
