@@ -54,7 +54,7 @@ export class AnalystsController {
   }
 
   /** Supervisão: carteira do Analista em DTO reduzido (nome + status). */
-  @Get(':id/maestras')
+  @Get(':id/users')
   findLinkedMaestras(@Param('id') id: string) {
     return this.analystsService.findLinkedMaestras(id);
   }

@@ -29,7 +29,7 @@ export class UsersController {
 
   // O vínculo da Maestra com o criador sai do token (não do corpo): quem
   // cadastra é sempre o usuário logado, seja Analista ou Manager.
-  @Post('maestra')
+  @Post()
   @Role(Roles.ADMIN, Roles.MANAGER, Roles.ANALYST)
   createMaestra(
     @Body() data: CreateUserDto,
