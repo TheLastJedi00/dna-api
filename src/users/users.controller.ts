@@ -27,15 +27,12 @@ import { AllowUnverified } from '../decorators/allow-unverified.decorator';
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
-  // O vínculo da Maestra com o criador sai do token (não do corpo): quem
+  // O vínculo do usuário com o criador sai do token (não do corpo): quem
   // cadastra é sempre o usuário logado, seja Analista ou Manager.
   @Post()
   @Role(Roles.ADMIN, Roles.MANAGER, Roles.ANALYST)
-  createMaestra(
-    @Body() data: CreateUserDto,
-    @Ownership('id') creatorId: string,
-  ) {
-    return this.usersService.createMaestra(data, creatorId);
+  createUser(@Body() data: CreateUserDto, @Ownership('id') creatorId: string) {
+    return this.usersService.createUser(data, creatorId);
   }
 
   // Paginação/busca/status vêm por query string (?page&pageSize&name&status);
@@ -82,8 +79,8 @@ export class UsersController {
     );
   }
 
-  // Rotas de gestão da Maestra: a role sozinha não basta — o service ainda
-  // valida a posse (createdBy), senão um Analista alcançaria a Maestra de
+  // Rotas de gestão do usuário: a role sozinha não basta — o service ainda
+  // valida a posse (createdBy), senão um Analista alcançaria o usuário de
   // outro pelo id. ADMIN segue como super-usuário.
   @Get(':id')
   @Role(Roles.ADMIN, Roles.MANAGER, Roles.ANALYST)

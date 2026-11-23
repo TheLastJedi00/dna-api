@@ -5,7 +5,7 @@ import { Roles } from '../enums/role.enum';
 
 /**
  * Cobre o CRUD de Analistas e, principalmente, as duas regras que protegem
- * dados: /analysts/:id não pode alcançar uma Maestra, e a supervisão devolve
+ * dados: /analysts/:id não pode alcançar um usuário, e a supervisão devolve
  * apenas nome e status da carteira.
  */
 function makeAnalyst(fullName: string, isActive = true, id = fullName): User {
@@ -14,8 +14,8 @@ function makeAnalyst(fullName: string, isActive = true, id = fullName): User {
   return analyst;
 }
 
-function makeMaestra(fullName: string, createdBy?: string, isActive = true) {
-  const maestra = new User(
+function makeOwnedUser(fullName: string, createdBy?: string, isActive = true) {
+  const owned = new User(
     {
       fullName,
       birthDate: '2000-01-01',
@@ -26,8 +26,8 @@ function makeMaestra(fullName: string, createdBy?: string, isActive = true) {
     fullName,
     [Roles.USER],
   );
-  maestra.isActive = isActive;
-  return maestra;
+  owned.isActive = isActive;
+  return owned;
 }
 
 describe('AnalystsService', () => {
@@ -122,8 +122,8 @@ describe('AnalystsService', () => {
   });
 
   describe('findOne', () => {
-    it('404 quando o documento existe mas não é um Analista (é uma Maestra)', async () => {
-      repo.findById.mockResolvedValue(makeMaestra('Cliente'));
+    it('404 quando o documento existe mas não é um Analista (é um usuário)', async () => {
+      repo.findById.mockResolvedValue(makeOwnedUser('Cliente'));
 
       await expect(service.findOne('Cliente')).rejects.toBeInstanceOf(
         NotFoundException,
@@ -160,8 +160,8 @@ describe('AnalystsService', () => {
       expect(analyst.isActive).toBe(true);
     });
 
-    it('não desativa uma Maestra pela rota de Analista', async () => {
-      repo.findById.mockResolvedValue(makeMaestra('Cliente'));
+    it('não desativa um usuário pela rota de Analista', async () => {
+      repo.findById.mockResolvedValue(makeOwnedUser('Cliente'));
       await expect(service.disable('Cliente')).rejects.toBeInstanceOf(
         NotFoundException,
       );
@@ -169,31 +169,31 @@ describe('AnalystsService', () => {
     });
   });
 
-  describe('findLinkedMaestras (supervisão)', () => {
+  describe('findLinkedUsers (supervisão)', () => {
     beforeEach(() => {
       repo.findById.mockResolvedValue(makeAnalyst('Bia', true, 'analyst-1'));
       repo.findAllWithRole.mockImplementation((role: string) =>
         Promise.resolve(
           role === Roles.USER
             ? [
-                makeMaestra('Carla', 'analyst-1'),
-                makeMaestra('Ana', 'analyst-1', false),
-                makeMaestra('Duda', 'analyst-2'),
-                makeMaestra('Eva', undefined),
+                makeOwnedUser('Carla', 'analyst-1'),
+                makeOwnedUser('Ana', 'analyst-1', false),
+                makeOwnedUser('Duda', 'analyst-2'),
+                makeOwnedUser('Eva', undefined),
               ]
             : [],
         ),
       );
     });
 
-    it('devolve só as Maestras do analista, ordenadas por nome', async () => {
-      const linked = await service.findLinkedMaestras('analyst-1');
+    it('devolve só os usuários do analista, ordenados por nome', async () => {
+      const linked = await service.findLinkedUsers('analyst-1');
 
       expect(linked.map((m) => m.fullName)).toEqual(['Ana', 'Carla']);
     });
 
     it('expõe apenas nome e status — nunca dados pessoais nem id', async () => {
-      const linked = await service.findLinkedMaestras('analyst-1');
+      const linked = await service.findLinkedUsers('analyst-1');
 
       expect(Object.keys(linked[0]).sort()).toEqual(['fullName', 'isActive']);
       expect(linked[0]).toEqual({ fullName: 'Ana', isActive: false });
@@ -201,9 +201,9 @@ describe('AnalystsService', () => {
 
     it('404 quando o analista não existe', async () => {
       repo.findById.mockResolvedValue(null);
-      await expect(
-        service.findLinkedMaestras('fantasma'),
-      ).rejects.toBeInstanceOf(NotFoundException);
+      await expect(service.findLinkedUsers('fantasma')).rejects.toBeInstanceOf(
+        NotFoundException,
+      );
     });
   });
 

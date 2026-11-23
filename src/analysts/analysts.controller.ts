@@ -23,7 +23,7 @@ import { Roles } from '../enums/role.enum';
 /**
  * Gestão de Analistas — exclusiva de ADMIN e MANAGER. O Analista não alcança
  * nenhuma rota daqui (critério de aceite da spec 004): ele gerencia apenas
- * Maestras, em /users.
+ * usuários, em /users.
  */
 @Controller('analysts')
 @UseGuards(AuthGuard, RoleGuard)
@@ -36,7 +36,7 @@ export class AnalystsController {
     return this.analystsService.create(data);
   }
 
-  // Mesma convenção da listagem de Maestras: itens no corpo, metadados de
+  // Mesma convenção da listagem de usuários: itens no corpo, metadados de
   // paginação nos headers X-* (expostos no CORS).
   @Get()
   async findAll(
@@ -55,8 +55,8 @@ export class AnalystsController {
 
   /** Supervisão: carteira do Analista em DTO reduzido (nome + status). */
   @Get(':id/users')
-  findLinkedMaestras(@Param('id') id: string) {
-    return this.analystsService.findLinkedMaestras(id);
+  findLinkedUsers(@Param('id') id: string) {
+    return this.analystsService.findLinkedUsers(id);
   }
 
   @Get(':id')

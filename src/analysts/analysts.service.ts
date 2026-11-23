@@ -12,11 +12,11 @@ import { CreateAnalystDto } from './dto/create-analyst.dto';
 import { UpdateAnalystDto } from './dto/update-analyst.dto';
 
 /**
- * Maestra vinculada, como o Manager a enxerga na supervisão: só nome e status.
+ * Usuário vinculado, como o Manager o enxerga na supervisão: só nome e status.
  * Sem id, sem dados natais — o Manager supervisiona a carteira do Analista, mas
  * não acessa os dados pessoais da cliente (regra de privacidade da spec 004).
  */
-export interface LinkedMaestra {
+export interface LinkedUser {
   fullName: string;
   isActive: boolean;
 }
@@ -34,7 +34,7 @@ export type AnalystDetailView = Omit<
 
 /**
  * Analistas são perfis da coleção `users` com `roles: ['ANALYST']` — mesmo
- * padrão da Maestra (doc chaveado pelo id do `auth`). Por isso este serviço
+ * padrão dos usuários (doc chaveado pelo uid do Firebase Auth). Por isso este serviço
  * reusa o UsersRepository em vez de abrir um segundo acesso à mesma coleção.
  */
 @Injectable()
@@ -46,7 +46,7 @@ export class AnalystsService {
 
   /**
    * Cadastro por convite (spec 010): conta no Firebase sem senha + perfil em
-   * `users`. Se o perfil falhar, a conta é desfeita (mesma regra da Maestra).
+   * `users`. Se o perfil falhar, a conta é desfeita (mesma regra do usuário).
    */
   async create(data: CreateAnalystDto) {
     const roles = [Roles.ANALYST];
@@ -73,7 +73,7 @@ export class AnalystsService {
 
   async findOne(id: string): Promise<User> {
     const analyst = await this.repository.findById(id);
-    // Um doc de Maestra não pode ser alcançado por /analysts/:id: sem esta
+    // Um doc de usuário não pode ser alcançado por /analysts/:id: sem esta
     // checagem, a rota viraria um atalho para os dados da cliente.
     if (!analyst || !analyst.roles?.includes(Roles.ANALYST)) {
       throw new NotFoundException(`Analista com o ID ${id} não encontrado`);
@@ -111,17 +111,18 @@ export class AnalystsService {
   }
 
   /**
-   * Supervisão: as Maestras cadastradas por este Analista, em DTO reduzido.
+   * Supervisão: os usuários cadastrados por este Analista, em DTO reduzido.
    * 404 se o analista não existe (evita devolver lista vazia para id inválido).
    */
-  async findLinkedMaestras(analystId: string): Promise<LinkedMaestra[]> {
+  async findLinkedUsers(analystId: string): Promise<LinkedUser[]> {
     await this.findOne(analystId);
-    const maestras = await this.repository.findAllWithRole(Roles.USER);
-    return maestras
-      .filter((maestra) => maestra.createdBy === analystId)
-      .map((maestra) => ({
-        fullName: maestra.fullName,
-        isActive: maestra.isActive,
+    const users = await this.repository.findAllWithRole(Roles.USER);
+    return users
+      .filter((user) => user.createdBy === analystId)
+
+      .map((user) => ({
+        fullName: user.fullName,
+        isActive: user.isActive,
       }))
       .sort((a, b) => a.fullName.localeCompare(b.fullName));
   }

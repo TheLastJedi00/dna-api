@@ -7,9 +7,9 @@ import {
 import { UsersService } from './users.service';
 import { User } from './entities/user.entity';
 
-/** Maestra cadastrada por `createdBy` — o vínculo que governa a visibilidade. */
-function maestraOf(fullName: string, createdBy?: string): User {
-  const maestra = new User(
+/** Usuário cadastrado por `createdBy` — o vínculo que governa a visibilidade. */
+function userOf(fullName: string, createdBy?: string): User {
+  const owned = new User(
     {
       fullName,
       birthDate: '2000-01-01',
@@ -20,11 +20,11 @@ function maestraOf(fullName: string, createdBy?: string): User {
     fullName,
     ['USER'],
   );
-  return maestra;
+  return owned;
 }
 
 /**
- * Cobre a lógica nova do CRUD de Maestras: listagem paginada com busca por nome
+ * Cobre a lógica nova do CRUD de usuários: listagem paginada com busca por nome
  * e filtro de status, reativação e edição. Repositório e auth mockados.
  */
 function makeUser(fullName: string, isActive = true, id = fullName): User {
@@ -42,10 +42,10 @@ function makeUser(fullName: string, isActive = true, id = fullName): User {
   return u;
 }
 
-/** Requisitante ADMIN: super-usuário, enxerga e gerencia todas as Maestras. */
+/** Requisitante ADMIN: super-usuário, enxerga e gerencia todos os usuários. */
 const admin = { requesterId: 'admin-1', requesterRoles: ['ADMIN'] };
 
-describe('UsersService — CRUD de Maestras', () => {
+describe('UsersService — CRUD de usuários', () => {
   let service: UsersService;
   let repo: {
     findAllWithRole: jest.Mock;
@@ -203,7 +203,7 @@ describe('UsersService — CRUD de Maestras', () => {
     });
   });
 
-  describe('createMaestra (convite: conta no Firebase sem senha)', () => {
+  describe('createUser (convite: conta no Firebase sem senha)', () => {
     const data = {
       fullName: 'Ana',
       birthDate: '2000-01-01',
@@ -215,7 +215,7 @@ describe('UsersService — CRUD de Maestras', () => {
     it('cria a conta com role USER e grava o perfil com o uid e o criador do token', async () => {
       auth.createAccount.mockResolvedValue({ id: 'uid-ana' });
 
-      await service.createMaestra(data, 'analyst-1');
+      await service.createUser(data, 'analyst-1');
 
       expect(auth.createAccount).toHaveBeenCalledWith('ana@dna.com', ['USER']);
       const persisted = repo.create.mock.calls[0][0] as User;
@@ -227,7 +227,7 @@ describe('UsersService — CRUD de Maestras', () => {
 
     it('devolve o id criado (o front dispara o convite em seguida)', async () => {
       auth.createAccount.mockResolvedValue({ id: 'uid-ana' });
-      await expect(service.createMaestra(data, 'analyst-1')).resolves.toEqual({
+      await expect(service.createUser(data, 'analyst-1')).resolves.toEqual({
         id: 'uid-ana',
       });
     });
@@ -237,7 +237,7 @@ describe('UsersService — CRUD de Maestras', () => {
         new ConflictException('Email já cadastrado.'),
       );
       await expect(
-        service.createMaestra(data, 'analyst-1'),
+        service.createUser(data, 'analyst-1'),
       ).rejects.toBeInstanceOf(ConflictException);
       expect(repo.create).not.toHaveBeenCalled();
     });
@@ -246,7 +246,7 @@ describe('UsersService — CRUD de Maestras', () => {
       auth.createAccount.mockResolvedValue({ id: 'uid-ana' });
       repo.create.mockRejectedValue(new Error('firestore fora'));
 
-      await expect(service.createMaestra(data, 'analyst-1')).rejects.toThrow(
+      await expect(service.createUser(data, 'analyst-1')).rejects.toThrow(
         'firestore fora',
       );
       expect(auth.removeAccount).toHaveBeenCalledWith('uid-ana');
@@ -256,13 +256,13 @@ describe('UsersService — CRUD de Maestras', () => {
   describe('visibilidade da listagem por role', () => {
     beforeEach(() => {
       repo.findAllWithRole.mockResolvedValue([
-        maestraOf('Ana', 'analyst-1'),
-        maestraOf('Bruna', 'analyst-2'),
-        maestraOf('Carla', undefined), // legada, sem vínculo
+        userOf('Ana', 'analyst-1'),
+        userOf('Bruna', 'analyst-2'),
+        userOf('Carla', undefined), // legada, sem vínculo
       ]);
     });
 
-    it('ANALYST vê apenas as Maestras que cadastrou', async () => {
+    it('ANALYST vê apenas os usuários que cadastrou', async () => {
       const res = await service.findAllActiveUsers({
         orderBy: 'fullName',
         direction: 'asc',
@@ -316,8 +316,8 @@ describe('UsersService — CRUD de Maestras', () => {
 
     it('sem perfil, cai para o e-mail do Firebase, em lote (caso do Manager)', async () => {
       repo.findAllWithRole.mockResolvedValue([
-        maestraOf('Ana', 'manager-1'),
-        maestraOf('Bia', 'manager-1'),
+        userOf('Ana', 'manager-1'),
+        userOf('Bia', 'manager-1'),
       ]);
       repo.findByIds.mockResolvedValue([]);
       auth.findEmailsByIds.mockResolvedValue(
@@ -340,7 +340,7 @@ describe('UsersService — CRUD de Maestras', () => {
     });
 
     it('criador que excluiu a conta (sem perfil nem login) → createdByName nulo', async () => {
-      repo.findAllWithRole.mockResolvedValue([maestraOf('Ana', 'excluido-1')]);
+      repo.findAllWithRole.mockResolvedValue([userOf('Ana', 'excluido-1')]);
       repo.findByIds.mockResolvedValue([]);
       auth.findEmailsByIds.mockResolvedValue(new Map());
 
@@ -355,8 +355,8 @@ describe('UsersService — CRUD de Maestras', () => {
   });
 
   describe('posse nas rotas de gestão', () => {
-    it('ANALYST não edita Maestra de outro analista (403)', async () => {
-      repo.findById.mockResolvedValue(maestraOf('Bruna', 'analyst-2'));
+    it('ANALYST não edita usuário de outro analista (403)', async () => {
+      repo.findById.mockResolvedValue(userOf('Bruna', 'analyst-2'));
 
       await expect(
         service.update(
@@ -368,8 +368,8 @@ describe('UsersService — CRUD de Maestras', () => {
       expect(repo.update).not.toHaveBeenCalled();
     });
 
-    it('ANALYST não desativa Maestra de outro analista (403)', async () => {
-      repo.findById.mockResolvedValue(maestraOf('Bruna', 'analyst-2'));
+    it('ANALYST não desativa usuário de outro analista (403)', async () => {
+      repo.findById.mockResolvedValue(userOf('Bruna', 'analyst-2'));
 
       await expect(
         service.disable('Bruna', { id: 'analyst-1', roles: ['ANALYST'] }),
@@ -377,22 +377,22 @@ describe('UsersService — CRUD de Maestras', () => {
       expect(repo.update).not.toHaveBeenCalled();
     });
 
-    it('ANALYST gerencia a própria Maestra', async () => {
-      const maestra = maestraOf('Ana', 'analyst-1');
-      repo.findById.mockResolvedValue(maestra);
+    it('ANALYST gerencia o próprio usuário', async () => {
+      const owned = userOf('Ana', 'analyst-1');
+      repo.findById.mockResolvedValue(owned);
 
       await service.disable('Ana', { id: 'analyst-1', roles: ['ANALYST'] });
 
-      expect(maestra.isActive).toBe(false);
+      expect(owned.isActive).toBe(false);
     });
 
-    it('ADMIN gerencia qualquer Maestra', async () => {
-      const maestra = maestraOf('Bruna', 'analyst-2');
-      repo.findById.mockResolvedValue(maestra);
+    it('ADMIN gerencia qualquer usuário', async () => {
+      const owned = userOf('Bruna', 'analyst-2');
+      repo.findById.mockResolvedValue(owned);
 
       await service.disable('Bruna', { id: 'admin-1', roles: ['ADMIN'] });
 
-      expect(maestra.isActive).toBe(false);
+      expect(owned.isActive).toBe(false);
     });
   });
 
@@ -441,7 +441,7 @@ describe('UsersService — CRUD de Maestras', () => {
 
   describe('status do acesso no detalhe (spec 010)', () => {
     it('o detalhe traz o e-mail e o status do acesso lidos do Firebase', async () => {
-      repo.findById.mockResolvedValue(maestraOf('Ana', 'analyst-1'));
+      repo.findById.mockResolvedValue(userOf('Ana', 'analyst-1'));
       auth.findAccount.mockResolvedValue({
         email: 'ana@dna.com',
         accessStatus: 'invite_pending',
@@ -460,7 +460,7 @@ describe('UsersService — CRUD de Maestras', () => {
     });
 
     it('sem conta no Firebase: status nulo e e-mail da cópia do perfil', async () => {
-      const ana = maestraOf('Ana', 'analyst-1');
+      const ana = userOf('Ana', 'analyst-1');
       ana.email = 'copia@dna.com';
       repo.findById.mockResolvedValue(ana);
       auth.findAccount.mockResolvedValue(null);
@@ -475,7 +475,7 @@ describe('UsersService — CRUD de Maestras', () => {
     });
 
     it('a listagem não consulta o Firebase conta a conta', async () => {
-      repo.findAllWithRole.mockResolvedValue([maestraOf('Ana', 'admin-1')]);
+      repo.findAllWithRole.mockResolvedValue([userOf('Ana', 'admin-1')]);
 
       await service.findAllActiveUsers({
         orderBy: 'fullName',

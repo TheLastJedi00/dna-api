@@ -2,8 +2,8 @@ import { CreateUserDto } from '../dto/create-user.dto';
 import { DEFAULT_PRONOUN, Pronoun } from '../pronoun';
 
 /**
- * Documento de perfil da coleção `users`, chaveado pelo id do doc de `auth`.
- * Cobre Maestras (role USER) e Analistas (role ANALYST): o Analista não tem
+ * Documento de perfil da coleção `users`, chaveado pelo uid do Firebase Auth.
+ * Cobre usuários (role USER) e Analistas (role ANALYST): o Analista não tem
  * mapa natal, por isso os campos natais são opcionais aqui — a obrigatoriedade
  * de cada fluxo é imposta pelo DTO (CreateUserDto x CreateAnalystDto).
  */
@@ -19,10 +19,10 @@ export class User {
   createdBy?: string;
   /** Cópia do e-mail de acesso; usada para exibir/buscar Analistas. */
   email?: string;
-  /** Ramo/segmento em que a empresa da Maestra atua. Texto livre. */
+  /** Ramo/segmento em que a empresa do usuário atua. Texto livre. */
   businessArea?: string;
   /**
-   * Pronome de tratamento da Maestra. Ausente nos cadastros anteriores à spec
+   * Pronome de tratamento do usuário. Ausente nos cadastros anteriores à spec
    * 007 — todo consumo assume `'feminino'` quando não informado.
    */
   pronoun?: Pronoun;
@@ -81,7 +81,7 @@ export class User {
       ? `\n      Área de atuação: ${this.businessArea}`
       : '';
     return `
-    Daddos Maestra:\n
+    Dados do usuário:\n
       Nome: ${this.fullName}\n
       Dia nascimento: ${this.birthDate} ${this.birthTime}\n
       Local nascimento: ${this.birthPlace}${businessAreaLine}\n
