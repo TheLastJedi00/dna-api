@@ -1,6 +1,8 @@
+import { RequestMethod } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { UsersController } from './users.controller';
 import { ALLOW_UNVERIFIED_KEY } from '../decorators/allow-unverified.decorator';
+import { routeOf } from '../testing/route-of';
 
 /**
  * Quais rotas de `users` ficam abertas para quem ainda não confirmou o e-mail.
@@ -11,7 +13,8 @@ describe('UsersController — rotas liberadas sem e-mail confirmado', () => {
   const allows = (handler: keyof UsersController) =>
     reflector.get<boolean>(
       ALLOW_UNVERIFIED_KEY,
-      UsersController.prototype[handler] as () => unknown,
+      Object.getOwnPropertyDescriptor(UsersController.prototype, handler)
+        ?.value as () => unknown,
     ) === true;
 
   it('GET /users/me/:id (perfil) é liberada', () => {
@@ -22,5 +25,14 @@ describe('UsersController — rotas liberadas sem e-mail confirmado', () => {
     expect(allows('findOne')).toBe(false);
     expect(allows('updateUser')).toBe(false);
     expect(allows('disableUser')).toBe(false);
+  });
+});
+
+describe('UsersController — rotas (spec 010: termo "usuários")', () => {
+  it('cadastro é POST /users', () => {
+    expect(routeOf(UsersController, 'createUser')).toEqual({
+      method: RequestMethod.POST,
+      path: '/',
+    });
   });
 });

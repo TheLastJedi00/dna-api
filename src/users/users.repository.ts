@@ -45,7 +45,7 @@ export class UsersRepository {
   }
 
   /**
-   * Devolve todos os perfis com a role informada (Maestras = USER, Analistas =
+   * Devolve todos os perfis com a role informada (usuários = USER, Analistas =
    * ANALYST) como entidades completas. Consulta apenas por `roles
    * array-contains <role>` (índice de array automático do Firestore);
    * status/busca/ordenação/paginação ficam no service (em memória), evitando

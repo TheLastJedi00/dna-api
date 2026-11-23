@@ -3,7 +3,7 @@ import { IsIn, IsInt, IsOptional, IsString, Max, Min } from 'class-validator';
 import type { UserStatusFilter } from '../../users/dto/list-users-query.dto';
 
 /**
- * Query da listagem de Analistas — mesma forma da listagem de Maestras
+ * Query da listagem de Analistas — mesma forma da listagem de usuários
  * (`page`/`pageSize`/`name`/`status`), para o front reaproveitar os controles.
  */
 export class ListAnalystsQueryDto {

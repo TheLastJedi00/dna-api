@@ -1,23 +1,12 @@
-import { Type } from 'class-transformer';
 import {
   IsEmail,
   IsIn,
   IsNotEmpty,
   IsOptional,
   IsString,
-  ValidateNested,
 } from 'class-validator';
 import { PRONOUNS } from '../pronoun';
 import type { Pronoun } from '../pronoun';
-
-export class UserLoginDto {
-  @IsEmail()
-  email!: string;
-
-  @IsString()
-  @IsNotEmpty()
-  password!: string;
-}
 
 export class CreateUserDto {
   @IsOptional()
@@ -28,10 +17,9 @@ export class CreateUserDto {
   @IsNotEmpty()
   fullName!: string;
 
-  @IsOptional()
-  @ValidateNested()
-  @Type(() => UserLoginDto)
-  login?: UserLoginDto;
+  /** E-mail de acesso. A senha não vem mais no cadastro: vai por convite. */
+  @IsEmail({}, { message: 'Formato de e-mail inválido.' })
+  email!: string;
 
   @IsString()
   @IsNotEmpty()

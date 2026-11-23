@@ -9,33 +9,30 @@ import { UpdateUserDto } from './dto/update-user.dto';
 import { UserStatusFilter } from './dto/list-users-query.dto';
 import { UsersRepository } from './users.repository';
 import { User } from './entities/user.entity';
-import { AuthService } from '../auth/auth.service';
-import { isTempPasswordExpired } from '../auth/entities/auth.entity';
+import { AccessStatus, AuthService } from '../auth/auth.service';
 import { Roles } from '../enums/role.enum';
 import { applyListQuery, assertDirection } from '../common/list-query';
 
 /**
- * Maestra como sai na resposta: os dados do documento + o nome de quem a
+ * Usuário como sai na resposta: os dados do documento + o nome de quem o
  * cadastrou. É a forma plana da entidade (sem os métodos), porque
  * `createdByName` é derivado e não pode ser persistido junto.
  */
-export type MaestraView = Omit<
+export type UserView = Omit<
   User,
   'disable' | 'enable' | 'applyUpdate' | 'toUserDataPrompt'
 > & { createdByName: string | null };
 
 /**
- * Detalhe da Maestra: a view da listagem + as credenciais (spec 005). O
- * `tempPassword` é senha em texto plano — por isso só existe aqui, no detalhe de
- * quem tem posse da Maestra, e nunca na listagem.
+ * Detalhe do usuário: a view da listagem + e-mail e status do acesso, lidos do
+ * Firebase Auth (spec 010). Só no detalhe: a listagem não consulta o Firebase
+ * conta a conta.
  */
-export type MaestraDetailView = Omit<MaestraView, 'email'> & {
-  /** Vem da coleção `auth` (fonte de verdade), não da cópia no perfil. */
+export type UserDetailView = Omit<UserView, 'email'> & {
+  /** Vem do Firebase Auth (fonte de verdade), não da cópia no perfil. */
   email: string | null;
-  mustChangePassword: boolean;
-  tempPassword: string | null;
-  /** Até quando a senha provisória vale (ISO 8601); `null` se não há uma. */
-  tempPasswordExpiresAt: string | null;
+  /** `null` quando o perfil não tem conta no Firebase. */
+  accessStatus: AccessStatus | null;
 };
 
 @Injectable()
@@ -46,27 +43,35 @@ export class UsersService {
   ) {}
 
   /**
-   * Cria a Maestra e a vincula a quem a cadastrou (`createdBy` = id do token),
-   * seja ele Analista ou Manager. Esse vínculo é o que governa a visibilidade
-   * na listagem (findAllActiveUsers).
+   * Cria o usuário por convite e o vincula a quem o cadastrou (`createdBy` = id
+   * do token), seja ele Analista ou Manager. Esse vínculo é o que governa a
+   * visibilidade na listagem (findAllActiveUsers).
+   *
+   * A conta nasce no Firebase sem senha (ver `AuthService.createAccount`); se o
+   * perfil não puder ser gravado, a conta é desfeita para não sobrar um login
+   * sem perfil.
    */
-  async createMaestra(data: CreateUserDto, creatorId: string) {
-    // Fonte de verdade de autorização = documento `auth` (as roles do JWT saem
-    // dele). `users.roles` é uma cópia denormalizada usada só para
-    // listagem/filtro (findAllActiveUsers) e é gravada atomicamente aqui com o
-    // mesmo valor. Qualquer futura mutação de role deve atualizar os dois.
+  async createUser(
+    data: CreateUserDto,
+    creatorId: string,
+  ): Promise<{ id: string }> {
+    // As roles moram na custom claim do Firebase (fonte de verdade da
+    // autorização) e são copiadas em `users.roles` para listagem/filtro.
+    // Qualquer futura mutação de role deve atualizar os dois.
     const roles = [Roles.USER];
-    const userAuth = await this.auth.create(data.login, roles);
-    const object = new User(
-      { ...data, createdBy: creatorId, email: data.login?.email },
-      userAuth.id,
-      roles,
-    );
-    await this.repository.create(object);
+    const { id } = await this.auth.createAccount(data.email, roles);
+    const profile = new User({ ...data, createdBy: creatorId }, id, roles);
+    try {
+      await this.repository.create(profile);
+    } catch (e) {
+      await this.auth.removeAccount(id);
+      throw e;
+    }
+    return { id };
   }
 
   /**
-   * Listagem paginada de Maestras (role USER). Busca os candidatos no
+   * Listagem paginada de usuários (role USER). Busca os candidatos no
    * repositório e aplica visibilidade, filtro de status, ordenação e paginação
    * em memória (volume esperado é pequeno; evita índice composto no Firestore).
    */
@@ -98,7 +103,7 @@ export class UsersService {
   }
 
   /**
-   * Visibilidade por role: Analista e Manager enxergam apenas as Maestras que
+   * Visibilidade por role: Analista e Manager enxergam apenas os usuários que
    * eles próprios cadastraram (`createdBy`); ADMIN é super-usuário e vê todas
    * — inclusive as anteriores ao vínculo, que não têm `createdBy`.
    */
@@ -114,13 +119,13 @@ export class UsersService {
   }
 
   /**
-   * Enriquece as Maestras com o nome de quem as cadastrou. Resolve em lote (uma
+   * Enriquece os usuários com o nome de quem os cadastrou. Resolve em lote (uma
    * busca por criador distinto, não por item) no perfil de `users`; quando o
-   * criador não tem perfil — caso do Manager, que só existe em `auth` — cai
-   * para o e-mail de acesso. `createdByName` é transiente: sai na resposta, mas
+   * criador não tem perfil — caso do Manager — cai para o e-mail de acesso no
+   * Firebase Auth (uma chamada em lote). Criador que excluiu a conta fica `null`. `createdByName` é transiente: sai na resposta, mas
    * nunca é persistido (o retorno é objeto plano, não a entidade).
    */
-  private async withCreatorNames(users: User[]): Promise<MaestraView[]> {
+  private async withCreatorNames(users: User[]): Promise<UserView[]> {
     const creatorIds = [
       ...new Set(
         users
@@ -136,14 +141,10 @@ export class UsersService {
     }
 
     const withoutProfile = creatorIds.filter((id) => !nameById.has(id));
-    await Promise.all(
-      withoutProfile.map(async (id) => {
-        const email = await this.auth.findEmailById(id);
-        if (email) {
-          nameById.set(id, email);
-        }
-      }),
-    );
+    const emails = await this.auth.findEmailsByIds(withoutProfile);
+    for (const [id, email] of emails) {
+      nameById.set(id, email);
+    }
 
     return users.map((user) => ({
       ...user,
@@ -170,48 +171,25 @@ export class UsersService {
     return user;
   }
 
-  /**
-   * Detalhe da Maestra para resposta HTTP: quem a cadastrou + as credenciais
-   * (e-mail e o estado da senha provisória), lidas da coleção `auth`.
-   */
+  /** Detalhe do usuário para resposta HTTP: criador + e-mail e status do acesso. */
   async findOneView(
     id: string,
     requester: { id: string; roles: string[] },
-  ): Promise<MaestraDetailView> {
+  ): Promise<UserDetailView> {
     const user = await this.findOne(id, requester);
     const [view] = await this.withCreatorNames([user]);
-    const credentials = await this.auth.findCredentialsById(id);
-    // Senha vencida não é senha: some da tela do gestor, e o botão de gerar
-    // outra volta a aparecer.
-    const expired = credentials ? isTempPasswordExpired(credentials) : false;
+    const account = await this.auth.findAccount(id);
     return {
       ...view,
-      email: credentials?.email ?? user.email ?? null,
-      mustChangePassword: credentials?.mustChangePassword ?? false,
-      tempPassword: expired ? null : (credentials?.tempPassword ?? null),
-      tempPasswordExpiresAt: expired
-        ? null
-        : (credentials?.tempPasswordExpiresAt ?? null),
+      email: account?.email ?? user.email ?? null,
+      accessStatus: account?.accessStatus ?? null,
     };
   }
 
   /**
-   * Redefinição da senha da Maestra pelo painel. A posse é validada antes: um
-   * Analista não pode redefinir a senha da Maestra de outro.
-   */
-  async setTempPassword(
-    id: string,
-    password: string,
-    requester: { id: string; roles: string[] },
-  ): Promise<void> {
-    await this.loadManageable(id, requester);
-    await this.auth.setTempPassword(id, password);
-  }
-
-  /**
-   * Posse: Analista e Manager só operam sobre as Maestras que cadastraram;
+   * Posse: Analista e Manager só operam sobre os usuários que cadastraram;
    * ADMIN é super-usuário. Sem isso, a role sozinha permitiria editar/desativar
-   * a Maestra de outro pelo id — o filtro da listagem não protege o acesso
+   * o usuário de outro pelo id — o filtro da listagem não protege o acesso
    * direto ao recurso.
    */
   private assertCanManage(
@@ -222,7 +200,7 @@ export class UsersService {
       return;
     }
     throw new ForbiddenException(
-      'Você só pode gerenciar as Maestras que cadastrou.',
+      'Você só pode gerenciar os usuários que cadastrou.',
     );
   }
 
@@ -271,7 +249,7 @@ export class UsersService {
     return await this.repository.update(id, user);
   }
 
-  /** Carrega a Maestra garantindo existência (404) e posse do requisitante (403). */
+  /** Carrega o usuário garantindo existência (404) e posse do requisitante (403). */
   private async loadManageable(
     id: string,
     requester?: { id: string; roles: string[] },

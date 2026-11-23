@@ -1,7 +1,7 @@
 import { BadRequestException } from '@nestjs/common';
 import { UserStatusFilter } from '../users/dto/list-users-query.dto';
 
-/** Mínimo que um item precisa expor para ser listado (Maestra e Analista). */
+/** Mínimo que um item precisa expor para ser listado (usuário e Analista). */
 export interface Listable {
   fullName: string;
   isActive: boolean;
@@ -25,7 +25,7 @@ export interface Paged<T> {
 
 /**
  * Busca por nome (parcial, case-insensitive), filtro de status, ordenação e
- * paginação — tudo em memória. Maestras e Analistas moram na mesma coleção e
+ * paginação — tudo em memória. Usuários e Analistas moram na mesma coleção e
  * têm volume pequeno; manter a filtragem aqui evita exigir índice composto no
  * Firestore. Compartilhado pelos dois serviços para não duplicar a regra.
  */
