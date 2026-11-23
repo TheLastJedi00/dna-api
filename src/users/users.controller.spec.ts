@@ -21,6 +21,10 @@ describe('UsersController — rotas liberadas sem e-mail confirmado', () => {
     expect(allows('findMe')).toBe(true);
   });
 
+  it('DELETE /users/me (excluir a própria conta) é liberada', () => {
+    expect(allows('deleteMe')).toBe(true);
+  });
+
   it('rotas de gestão continuam exigindo e-mail confirmado', () => {
     expect(allows('findOne')).toBe(false);
     expect(allows('updateUser')).toBe(false);
@@ -34,5 +38,20 @@ describe('UsersController — rotas (spec 010: termo "usuários")', () => {
       method: RequestMethod.POST,
       path: '/',
     });
+  });
+
+  it('excluir a própria conta é DELETE /users/me', () => {
+    expect(routeOf(UsersController, 'deleteMe')).toEqual({
+      method: RequestMethod.DELETE,
+      path: 'me',
+    });
+  });
+
+  it('DELETE /users/me vem antes de DELETE /users/:id (senão "me" vira um id)', () => {
+    const order = Object.getOwnPropertyNames(UsersController.prototype);
+    expect(order).toContain('deleteMe');
+    expect(order.indexOf('deleteMe')).toBeLessThan(
+      order.indexOf('disableUser'),
+    );
   });
 });
