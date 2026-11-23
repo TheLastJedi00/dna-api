@@ -70,12 +70,14 @@ export class UsersController {
   async findMe(
     @Ownership('id') idFromToken: string,
     @Ownership('roles') rolesFromToken: string[],
+    @Ownership('email') emailFromToken: string,
     @Param('id') idFromUrl: string,
   ) {
     return await this.usersService.findMe(
       idFromToken,
       rolesFromToken,
       idFromUrl,
+      emailFromToken,
     );
   }
 
