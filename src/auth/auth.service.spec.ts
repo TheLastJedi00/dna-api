@@ -7,33 +7,23 @@ import { AuthService } from './auth.service';
  */
 describe('AuthService — contas no Firebase Auth', () => {
   let service: AuthService;
-  let repo: {
-    create: jest.Mock;
-    update: jest.Mock;
-    findById: jest.Mock;
-    findByEmail: jest.Mock;
-  };
   let firebaseAuth: {
     createUser: jest.Mock;
     setCustomUserClaims: jest.Mock;
     deleteUser: jest.Mock;
     getUser: jest.Mock;
+    getUsers: jest.Mock;
   };
 
   beforeEach(() => {
-    repo = {
-      create: jest.fn().mockResolvedValue({ id: 'u1' }),
-      update: jest.fn().mockResolvedValue(undefined),
-      findById: jest.fn(),
-      findByEmail: jest.fn().mockResolvedValue(null),
-    };
     firebaseAuth = {
       createUser: jest.fn().mockResolvedValue({ uid: 'uid-novo' }),
       setCustomUserClaims: jest.fn().mockResolvedValue(undefined),
       deleteUser: jest.fn().mockResolvedValue(undefined),
       getUser: jest.fn(),
+      getUsers: jest.fn().mockResolvedValue([]),
     };
-    service = new AuthService(repo as any, firebaseAuth as any);
+    service = new AuthService(firebaseAuth as any);
   });
 
   describe('createAccount (convite, spec 010)', () => {
@@ -125,6 +115,25 @@ describe('AuthService — contas no Firebase Auth', () => {
         Object.assign(new Error('nf'), { code: 'auth/user-not-found' }),
       );
       await expect(service.findAccount('uid-1')).resolves.toBeNull();
+    });
+  });
+
+  describe('findEmailsByIds', () => {
+    it('busca em lote e devolve uid → e-mail (quem não existe fica de fora)', async () => {
+      firebaseAuth.getUsers.mockResolvedValue([
+        { uid: 'a', email: 'a@dna.com' },
+        { uid: 'b', email: undefined },
+      ]);
+
+      const emails = await service.findEmailsByIds(['a', 'b', 'c']);
+
+      expect(firebaseAuth.getUsers).toHaveBeenCalledWith(['a', 'b', 'c']);
+      expect([...emails.entries()]).toEqual([['a', 'a@dna.com']]);
+    });
+
+    it('lista vazia não chama o Firebase', async () => {
+      await expect(service.findEmailsByIds([])).resolves.toEqual(new Map());
+      expect(firebaseAuth.getUsers).not.toHaveBeenCalled();
     });
   });
 });

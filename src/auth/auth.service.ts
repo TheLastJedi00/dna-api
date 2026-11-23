@@ -1,5 +1,4 @@
 import { ConflictException, Injectable } from '@nestjs/common';
-import { AuthRepository } from './auth.repository';
 import { FirebaseAuthAdapter } from '../firebase/firebase-auth.adapter';
 
 /** Erro do Admin SDK do Firebase: traz um `code` como `auth/user-not-found`. */
@@ -24,10 +23,7 @@ export interface AccountInfo {
 
 @Injectable()
 export class AuthService {
-  constructor(
-    private readonly repository: AuthRepository,
-    private readonly firebaseAuth: FirebaseAuthAdapter,
-  ) {}
+  constructor(private readonly firebaseAuth: FirebaseAuthAdapter) {}
 
   /**
    * Cadastro por **convite** (spec 010): a conta nasce no Firebase Auth **sem
@@ -89,17 +85,22 @@ export class AuthService {
     return { email: record.email ?? null, accessStatus };
   }
 
-  /** Credenciais de um id, para compor o detalhe do usuário. */
-  async findCredentialsById(id: string) {
-    return await this.repository.findById(id);
-  }
-
   /**
-   * E-mail de acesso de um id. Usado para identificar quem cadastrou uma
-   * Maestra quando o criador não tem perfil em `users` (caso do Manager).
+   * E-mail de acesso de vários ids de uma vez, para identificar quem cadastrou
+   * um usuário quando o criador não tem perfil em `users` (caso do Manager).
+   * Quem não tem conta (ex.: excluiu a própria conta) fica fora do mapa.
    */
-  async findEmailById(id: string): Promise<string | null> {
-    const auth = await this.repository.findById(id);
-    return auth?.email ?? null;
+  async findEmailsByIds(ids: string[]): Promise<Map<string, string>> {
+    const emails = new Map<string, string>();
+    if (ids.length === 0) {
+      return emails;
+    }
+    const records = await this.firebaseAuth.getUsers(ids);
+    for (const record of records) {
+      if (record.email) {
+        emails.set(record.uid, record.email);
+      }
+    }
+    return emails;
   }
 }

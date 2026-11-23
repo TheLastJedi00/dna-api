@@ -57,7 +57,7 @@ describe('UsersService — CRUD de Maestras', () => {
   let auth: {
     createAccount: jest.Mock;
     removeAccount: jest.Mock;
-    findEmailById: jest.Mock;
+    findEmailsByIds: jest.Mock;
     findAccount: jest.Mock;
   };
 
@@ -72,7 +72,7 @@ describe('UsersService — CRUD de Maestras', () => {
     auth = {
       createAccount: jest.fn(),
       removeAccount: jest.fn().mockResolvedValue(undefined),
-      findEmailById: jest.fn().mockResolvedValue(null),
+      findEmailsByIds: jest.fn().mockResolvedValue(new Map()),
       findAccount: jest.fn().mockResolvedValue(null),
     };
     service = new UsersService(repo as any, auth as any);
@@ -314,10 +314,15 @@ describe('UsersService — CRUD de Maestras', () => {
       expect(res.items[0].createdByName).toBe('Bia Analista');
     });
 
-    it('sem perfil, cai para o e-mail do auth (caso do Manager)', async () => {
-      repo.findAllWithRole.mockResolvedValue([maestraOf('Ana', 'manager-1')]);
+    it('sem perfil, cai para o e-mail do Firebase, em lote (caso do Manager)', async () => {
+      repo.findAllWithRole.mockResolvedValue([
+        maestraOf('Ana', 'manager-1'),
+        maestraOf('Bia', 'manager-1'),
+      ]);
       repo.findByIds.mockResolvedValue([]);
-      auth.findEmailById.mockResolvedValue('gestora@dna.com');
+      auth.findEmailsByIds.mockResolvedValue(
+        new Map([['manager-1', 'gestora@dna.com']]),
+      );
 
       const res = await service.findAllActiveUsers({
         orderBy: 'fullName',
@@ -326,7 +331,26 @@ describe('UsersService — CRUD de Maestras', () => {
         requesterRoles: ['MANAGER'],
       });
 
-      expect(res.items[0].createdByName).toBe('gestora@dna.com');
+      expect(auth.findEmailsByIds).toHaveBeenCalledTimes(1);
+      expect(auth.findEmailsByIds).toHaveBeenCalledWith(['manager-1']);
+      expect(res.items.map((i) => i.createdByName)).toEqual([
+        'gestora@dna.com',
+        'gestora@dna.com',
+      ]);
+    });
+
+    it('criador que excluiu a conta (sem perfil nem login) → createdByName nulo', async () => {
+      repo.findAllWithRole.mockResolvedValue([maestraOf('Ana', 'excluido-1')]);
+      repo.findByIds.mockResolvedValue([]);
+      auth.findEmailsByIds.mockResolvedValue(new Map());
+
+      const res = await service.findAllActiveUsers({
+        orderBy: 'fullName',
+        direction: 'asc',
+        ...admin,
+      });
+
+      expect(res.items[0].createdByName).toBeNull();
     });
   });
 

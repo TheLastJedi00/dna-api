@@ -1,6 +1,5 @@
 import { Module } from '@nestjs/common';
 import { AuthService } from './auth.service';
-import { AuthRepository } from './auth.repository';
 import { AuthGuard } from './guards/auth.guard';
 
 /**
@@ -8,7 +7,7 @@ import { AuthGuard } from './guards/auth.guard';
  * valida o ID token no `AuthGuard`. Sem endpoints de login/refresh/logout.
  */
 @Module({
-  providers: [AuthService, AuthRepository, AuthGuard],
+  providers: [AuthService, AuthGuard],
   exports: [AuthService],
 })
 export class AuthModule {}

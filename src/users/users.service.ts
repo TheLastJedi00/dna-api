@@ -121,8 +121,8 @@ export class UsersService {
   /**
    * Enriquece as Maestras com o nome de quem as cadastrou. Resolve em lote (uma
    * busca por criador distinto, não por item) no perfil de `users`; quando o
-   * criador não tem perfil — caso do Manager, que só existe em `auth` — cai
-   * para o e-mail de acesso. `createdByName` é transiente: sai na resposta, mas
+   * criador não tem perfil — caso do Manager — cai para o e-mail de acesso no
+   * Firebase Auth (uma chamada em lote). Criador que excluiu a conta fica `null`. `createdByName` é transiente: sai na resposta, mas
    * nunca é persistido (o retorno é objeto plano, não a entidade).
    */
   private async withCreatorNames(users: User[]): Promise<MaestraView[]> {
@@ -141,14 +141,10 @@ export class UsersService {
     }
 
     const withoutProfile = creatorIds.filter((id) => !nameById.has(id));
-    await Promise.all(
-      withoutProfile.map(async (id) => {
-        const email = await this.auth.findEmailById(id);
-        if (email) {
-          nameById.set(id, email);
-        }
-      }),
-    );
+    const emails = await this.auth.findEmailsByIds(withoutProfile);
+    for (const [id, email] of emails) {
+      nameById.set(id, email);
+    }
 
     return users.map((user) => ({
       ...user,
