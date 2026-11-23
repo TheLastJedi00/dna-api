@@ -28,7 +28,7 @@ describe('UsersController — rotas liberadas sem e-mail confirmado', () => {
   });
 });
 
-describe('UsersController — rotas (spec 010: sem "maestra" na rota)', () => {
+describe('UsersController — rotas (spec 010: termo "usuários")', () => {
   it('cadastro é POST /users', () => {
     expect(routeOf(UsersController, 'createUser')).toEqual({
       method: RequestMethod.POST,
