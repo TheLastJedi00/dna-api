@@ -6,13 +6,62 @@ import {
 import { AuthRepository } from './auth.repository';
 import { Auth, TEMP_PASSWORD_TTL_MS } from './entities/auth.entity';
 import { BcryptService } from './bcrypt.service';
+import { FirebaseAuthAdapter } from '../firebase/firebase-auth.adapter';
+
+/** Erro do Admin SDK do Firebase: traz um `code` como `auth/user-not-found`. */
+function firebaseErrorCode(e: unknown): string | undefined {
+  return typeof e === 'object' && e !== null && 'code' in e
+    ? String(e.code)
+    : undefined;
+}
 
 @Injectable()
 export class AuthService {
   constructor(
     private readonly repository: AuthRepository,
     private readonly bcyptService: BcryptService,
+    private readonly firebaseAuth: FirebaseAuthAdapter,
   ) {}
+
+  /**
+   * Cadastro por **convite** (spec 010): a conta nasce no Firebase Auth **sem
+   * senha** e com o e-mail não verificado; a pessoa define a senha pelo link
+   * "Defina sua senha", que o front dispara logo depois. As roles vão como
+   * custom claim (é de lá que o `AuthGuard` as lê). Se as claims falharem, a
+   * conta é desfeita — uma conta sem roles não serve para nada.
+   */
+  async createAccount(email: string, roles: string[]): Promise<{ id: string }> {
+    let uid: string;
+    try {
+      ({ uid } = await this.firebaseAuth.createUser({
+        email,
+        emailVerified: false,
+      }));
+    } catch (e) {
+      if (firebaseErrorCode(e) === 'auth/email-already-exists') {
+        throw new ConflictException('Email já cadastrado.');
+      }
+      throw e;
+    }
+    try {
+      await this.firebaseAuth.setCustomUserClaims(uid, { roles });
+    } catch (e) {
+      await this.removeAccount(uid);
+      throw e;
+    }
+    return { id: uid };
+  }
+
+  /** Apaga a conta do Firebase Auth. Conta inexistente não é erro (idempotente). */
+  async removeAccount(id: string): Promise<void> {
+    try {
+      await this.firebaseAuth.deleteUser(id);
+    } catch (e) {
+      if (firebaseErrorCode(e) !== 'auth/user-not-found') {
+        throw e;
+      }
+    }
+  }
 
   /**
    * A senha definida no cadastro **já nasce provisória** (spec 005): vale para o

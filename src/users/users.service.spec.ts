@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ConflictException,
   ForbiddenException,
   NotFoundException,
 } from '@nestjs/common';
@@ -54,7 +55,8 @@ describe('UsersService — CRUD de Maestras', () => {
     create: jest.Mock;
   };
   let auth: {
-    create: jest.Mock;
+    createAccount: jest.Mock;
+    removeAccount: jest.Mock;
     findEmailById: jest.Mock;
     setTempPassword: jest.Mock;
     findCredentialsById: jest.Mock;
@@ -69,7 +71,8 @@ describe('UsersService — CRUD de Maestras', () => {
       create: jest.fn(),
     };
     auth = {
-      create: jest.fn(),
+      createAccount: jest.fn(),
+      removeAccount: jest.fn().mockResolvedValue(undefined),
       findEmailById: jest.fn().mockResolvedValue(null),
       setTempPassword: jest.fn().mockResolvedValue(undefined),
       findCredentialsById: jest.fn().mockResolvedValue(null),
@@ -202,24 +205,53 @@ describe('UsersService — CRUD de Maestras', () => {
     });
   });
 
-  describe('createMaestra (vínculo com o criador)', () => {
-    it('grava createdBy com o id de quem cadastrou, não do corpo', async () => {
-      auth.create.mockResolvedValue({ id: 'maestra-1' });
+  describe('createMaestra (convite: conta no Firebase sem senha)', () => {
+    const data = {
+      fullName: 'Ana',
+      birthDate: '2000-01-01',
+      birthTime: '00:00',
+      birthPlace: 'Floripa-SC',
+      email: 'ana@dna.com',
+    };
 
-      await service.createMaestra(
-        {
-          fullName: 'Ana',
-          birthDate: '2000-01-01',
-          birthTime: '00:00',
-          birthPlace: 'Floripa-SC',
-          login: { email: 'ana@dna.com', password: 'x' },
-        },
-        'analyst-1',
-      );
+    it('cria a conta com role USER e grava o perfil com o uid e o criador do token', async () => {
+      auth.createAccount.mockResolvedValue({ id: 'uid-ana' });
 
+      await service.createMaestra(data, 'analyst-1');
+
+      expect(auth.createAccount).toHaveBeenCalledWith('ana@dna.com', ['USER']);
       const persisted = repo.create.mock.calls[0][0] as User;
+      expect(persisted.id).toBe('uid-ana');
       expect(persisted.createdBy).toBe('analyst-1');
       expect(persisted.roles).toEqual(['USER']);
+      expect(persisted.email).toBe('ana@dna.com');
+    });
+
+    it('devolve o id criado (o front dispara o convite em seguida)', async () => {
+      auth.createAccount.mockResolvedValue({ id: 'uid-ana' });
+      await expect(service.createMaestra(data, 'analyst-1')).resolves.toEqual({
+        id: 'uid-ana',
+      });
+    });
+
+    it('e-mail já cadastrado: propaga o 409 e não grava perfil', async () => {
+      auth.createAccount.mockRejectedValue(
+        new ConflictException('Email já cadastrado.'),
+      );
+      await expect(
+        service.createMaestra(data, 'analyst-1'),
+      ).rejects.toBeInstanceOf(ConflictException);
+      expect(repo.create).not.toHaveBeenCalled();
+    });
+
+    it('falha ao gravar o perfil: desfaz a conta no Firebase (sem conta órfã)', async () => {
+      auth.createAccount.mockResolvedValue({ id: 'uid-ana' });
+      repo.create.mockRejectedValue(new Error('firestore fora'));
+
+      await expect(service.createMaestra(data, 'analyst-1')).rejects.toThrow(
+        'firestore fora',
+      );
+      expect(auth.removeAccount).toHaveBeenCalledWith('uid-ana');
     });
   });
 

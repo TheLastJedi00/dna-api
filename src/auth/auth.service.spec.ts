@@ -1,4 +1,4 @@
-import { NotFoundException } from '@nestjs/common';
+import { ConflictException, NotFoundException } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { Auth } from './entities/auth.entity';
 
@@ -15,6 +15,11 @@ describe('AuthService — senha temporária', () => {
     findByEmail: jest.Mock;
   };
   let bcrypt: { hash: jest.Mock; compare: jest.Mock };
+  let firebaseAuth: {
+    createUser: jest.Mock;
+    setCustomUserClaims: jest.Mock;
+    deleteUser: jest.Mock;
+  };
 
   const credentialsOf = (partial: Partial<Auth> = {}) =>
     new Auth({
@@ -38,7 +43,12 @@ describe('AuthService — senha temporária', () => {
       hash: jest.fn().mockImplementation((p: string) => `hash(${p})`),
       compare: jest.fn().mockResolvedValue(true),
     };
-    service = new AuthService(repo as any, bcrypt);
+    firebaseAuth = {
+      createUser: jest.fn().mockResolvedValue({ uid: 'uid-novo' }),
+      setCustomUserClaims: jest.fn().mockResolvedValue(undefined),
+      deleteUser: jest.fn().mockResolvedValue(undefined),
+    };
+    service = new AuthService(repo as any, bcrypt, firebaseAuth as any);
   });
 
   describe('create', () => {
@@ -101,6 +111,56 @@ describe('AuthService — senha temporária', () => {
       expect(new Date(changes.tempPasswordExpiresAt).getTime()).toBeGreaterThan(
         Date.now(),
       );
+    });
+  });
+
+  describe('createAccount (convite, spec 010)', () => {
+    it('cria no Firebase sem senha, com e-mail não verificado, e grava as roles nas claims', async () => {
+      await expect(
+        service.createAccount('ana@dna.com', ['USER']),
+      ).resolves.toEqual({ id: 'uid-novo' });
+
+      expect(firebaseAuth.createUser).toHaveBeenCalledWith({
+        email: 'ana@dna.com',
+        emailVerified: false,
+      });
+      expect(firebaseAuth.setCustomUserClaims).toHaveBeenCalledWith(
+        'uid-novo',
+        { roles: ['USER'] },
+      );
+    });
+
+    it('e-mail já existente no Firebase → 409 "Email já cadastrado."', async () => {
+      firebaseAuth.createUser.mockRejectedValue(
+        Object.assign(new Error('exists'), {
+          code: 'auth/email-already-exists',
+        }),
+      );
+      const promise = service.createAccount('ana@dna.com', ['USER']);
+      await expect(promise).rejects.toBeInstanceOf(ConflictException);
+      await expect(promise).rejects.toThrow('Email já cadastrado.');
+    });
+
+    it('falha ao gravar as claims: apaga a conta recém-criada e propaga o erro', async () => {
+      firebaseAuth.setCustomUserClaims.mockRejectedValue(new Error('claims'));
+      await expect(
+        service.createAccount('ana@dna.com', ['USER']),
+      ).rejects.toThrow('claims');
+      expect(firebaseAuth.deleteUser).toHaveBeenCalledWith('uid-novo');
+    });
+  });
+
+  describe('removeAccount', () => {
+    it('apaga a conta do Firebase', async () => {
+      await service.removeAccount('uid-1');
+      expect(firebaseAuth.deleteUser).toHaveBeenCalledWith('uid-1');
+    });
+
+    it('conta que já não existe não é erro (idempotente)', async () => {
+      firebaseAuth.deleteUser.mockRejectedValue(
+        Object.assign(new Error('nf'), { code: 'auth/user-not-found' }),
+      );
+      await expect(service.removeAccount('uid-1')).resolves.toBeUndefined();
     });
   });
 });

@@ -46,23 +46,31 @@ export class UsersService {
   ) {}
 
   /**
-   * Cria a Maestra e a vincula a quem a cadastrou (`createdBy` = id do token),
-   * seja ele Analista ou Manager. Esse vínculo é o que governa a visibilidade
-   * na listagem (findAllActiveUsers).
+   * Cria a Maestra por convite e a vincula a quem a cadastrou (`createdBy` = id
+   * do token), seja ele Analista ou Manager. Esse vínculo é o que governa a
+   * visibilidade na listagem (findAllActiveUsers).
+   *
+   * A conta nasce no Firebase sem senha (ver `AuthService.createAccount`); se o
+   * perfil não puder ser gravado, a conta é desfeita para não sobrar um login
+   * sem perfil.
    */
-  async createMaestra(data: CreateUserDto, creatorId: string) {
-    // Fonte de verdade de autorização = documento `auth` (as roles do JWT saem
-    // dele). `users.roles` é uma cópia denormalizada usada só para
-    // listagem/filtro (findAllActiveUsers) e é gravada atomicamente aqui com o
-    // mesmo valor. Qualquer futura mutação de role deve atualizar os dois.
+  async createMaestra(
+    data: CreateUserDto,
+    creatorId: string,
+  ): Promise<{ id: string }> {
+    // As roles moram na custom claim do Firebase (fonte de verdade da
+    // autorização) e são copiadas em `users.roles` para listagem/filtro.
+    // Qualquer futura mutação de role deve atualizar os dois.
     const roles = [Roles.USER];
-    const userAuth = await this.auth.create(data.login, roles);
-    const object = new User(
-      { ...data, createdBy: creatorId, email: data.login?.email },
-      userAuth.id,
-      roles,
-    );
-    await this.repository.create(object);
+    const { id } = await this.auth.createAccount(data.email, roles);
+    const profile = new User({ ...data, createdBy: creatorId }, id, roles);
+    try {
+      await this.repository.create(profile);
+    } catch (e) {
+      await this.auth.removeAccount(id);
+      throw e;
+    }
+    return { id };
   }
 
   /**
