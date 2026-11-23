@@ -204,10 +204,19 @@ export class UsersService {
     );
   }
 
+  /**
+   * Perfil do próprio usuário (ou de qualquer um, para ADMIN/MANAGER).
+   *
+   * `users.email` é cópia do e-mail do Firebase. Quando a pessoa troca o e-mail
+   * em Meu Perfil, o Firebase só o altera depois do clique no link; no acesso
+   * seguinte o token já traz o novo endereço e a cópia é atualizada aqui
+   * (sincronia preguiçosa, sem endpoint próprio). Só vale para o próprio perfil.
+   */
   async findMe(
     idFromToken: string,
     rolesFromToken: string[],
     idFromUrl: string,
+    emailFromToken?: string,
   ) {
     const isPrivileged =
       rolesFromToken?.some(
@@ -223,6 +232,11 @@ export class UsersService {
       throw new NotFoundException(
         `Usuário com ID ${idFromUrl} não encontrado.`,
       );
+    }
+    const isOwnProfile = idFromToken === idFromUrl;
+    if (isOwnProfile && emailFromToken && user.email !== emailFromToken) {
+      user.email = emailFromToken;
+      await this.repository.update(user.id, user);
     }
     return user;
   }

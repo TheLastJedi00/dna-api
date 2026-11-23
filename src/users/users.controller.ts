@@ -9,7 +9,10 @@ import {
   Res,
   Delete,
   UseGuards,
+  HttpCode,
+  HttpStatus,
 } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import type { Response } from 'express';
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
@@ -21,11 +24,16 @@ import { Role } from '../decorators/role.decorator';
 import { Roles } from '../enums/role.enum';
 import { Ownership } from '../decorators/ownership.decorator';
 import { AllowUnverified } from '../decorators/allow-unverified.decorator';
+import { AccountDeletionService } from '../account/account-deletion.service';
+import type { RequestAuth } from '../auth/entities/request-auth';
 
 @Controller('users')
 @UseGuards(AuthGuard, RoleGuard)
 export class UsersController {
-  constructor(private readonly usersService: UsersService) {}
+  constructor(
+    private readonly usersService: UsersService,
+    private readonly accountDeletion: AccountDeletionService,
+  ) {}
 
   // O vínculo do usuário com o criador sai do token (não do corpo): quem
   // cadastra é sempre o usuário logado, seja Analista ou Manager.
@@ -70,12 +78,14 @@ export class UsersController {
   async findMe(
     @Ownership('id') idFromToken: string,
     @Ownership('roles') rolesFromToken: string[],
+    @Ownership('email') emailFromToken: string,
     @Param('id') idFromUrl: string,
   ) {
     return await this.usersService.findMe(
       idFromToken,
       rolesFromToken,
       idFromUrl,
+      emailFromToken,
     );
   }
 
@@ -93,6 +103,17 @@ export class UsersController {
       id: requesterId,
       roles: requesterRoles,
     });
+  }
+
+  // LGPD (spec 010): a própria pessoa exclui a conta. O id sai só do token.
+  // Declarada antes de DELETE /users/:id — senão "me" seria lido como id.
+  // Rate-limit próprio, mais restrito que o global.
+  @Delete('me')
+  @AllowUnverified()
+  @Throttle({ default: { limit: 5, ttl: 60_000 } })
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async deleteMe(@Ownership() requester: RequestAuth) {
+    await this.accountDeletion.deleteOwnAccount(requester);
   }
 
   @Delete(':id')

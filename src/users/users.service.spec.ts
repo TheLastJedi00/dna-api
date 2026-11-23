@@ -486,4 +486,36 @@ describe('UsersService — CRUD de usuários', () => {
       expect(auth.findAccount).not.toHaveBeenCalled();
     });
   });
+
+  describe('findMe (sincronia do e-mail, spec 010)', () => {
+    const own = () => {
+      const u = userOf('Ana', 'analyst-1');
+      u.email = 'velho@dna.com';
+      return u;
+    };
+
+    it('o e-mail do token mudou (troca confirmada): atualiza a cópia no perfil', async () => {
+      repo.findById.mockResolvedValue(own());
+
+      const me = await service.findMe('Ana', ['USER'], 'Ana', 'novo@dna.com');
+
+      expect(me.email).toBe('novo@dna.com');
+      expect(repo.update).toHaveBeenCalledWith(
+        'Ana',
+        expect.objectContaining({ email: 'novo@dna.com' }),
+      );
+    });
+
+    it('mesmo e-mail: não grava nada', async () => {
+      repo.findById.mockResolvedValue(own());
+      await service.findMe('Ana', ['USER'], 'Ana', 'velho@dna.com');
+      expect(repo.update).not.toHaveBeenCalled();
+    });
+
+    it('ADMIN lendo o perfil de outro: não sincroniza com o e-mail dele', async () => {
+      repo.findById.mockResolvedValue(own());
+      await service.findMe('admin-1', ['ADMIN'], 'Ana', 'admin@dna.com');
+      expect(repo.update).not.toHaveBeenCalled();
+    });
+  });
 });
