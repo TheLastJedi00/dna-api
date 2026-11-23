@@ -1,37 +1,15 @@
 import { Module } from '@nestjs/common';
 import { AuthService } from './auth.service';
-import { AuthController } from './auth.controller';
 import { AuthRepository } from './auth.repository';
 import { AuthGuard } from './guards/auth.guard';
 import { BcryptService } from './bcrypt.service';
-import { JwtModule } from '@nestjs/jwt';
-import { ConfigService } from '@nestjs/config';
-import { RefreshTokenStore } from './refresh-token.store';
 
+/**
+ * Sessão é do Firebase Auth (spec 010): o front entra pelo SDK web e a API só
+ * valida o ID token no `AuthGuard`. Sem endpoints de login/refresh/logout.
+ */
 @Module({
-  controllers: [AuthController],
-  providers: [
-    AuthService,
-    AuthRepository,
-    AuthGuard,
-    BcryptService,
-    RefreshTokenStore,
-  ],
+  providers: [AuthService, AuthRepository, AuthGuard, BcryptService],
   exports: [AuthService],
-  imports: [
-    JwtModule.registerAsync({
-      global: true,
-      inject: [ConfigService],
-      useFactory: (configService: ConfigService) => {
-        return {
-          secret: configService.get<string>('JWT_SECRET'),
-          signOptions: {
-            expiresIn: (configService.get<string>('JWT_ACCESS_EXPIRES') ??
-              '15m') as any,
-          },
-        };
-      },
-    }),
-  ],
 })
 export class AuthModule {}

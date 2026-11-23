@@ -21,6 +21,7 @@ import { RoleGuard } from '../auth/guards/role.guard';
 import { Role } from '../decorators/role.decorator';
 import { Roles } from '../enums/role.enum';
 import { Ownership } from '../decorators/ownership.decorator';
+import { AllowUnverified } from '../decorators/allow-unverified.decorator';
 
 @Controller('users')
 @UseGuards(AuthGuard, RoleGuard)
@@ -66,7 +67,10 @@ export class UsersController {
     return items;
   }
 
+  // Aberta para quem ainda não confirmou o e-mail: o popup de verificação e o
+  // Meu Perfil precisam do nome da pessoa (spec 010).
   @Get('me/:id')
+  @AllowUnverified()
   async findMe(
     @Ownership('id') idFromToken: string,
     @Ownership('roles') rolesFromToken: string[],

@@ -1,7 +1,7 @@
 import { InternalServerErrorException } from '@nestjs/common';
 import { plainToInstance } from 'class-transformer';
 import * as admin from 'firebase-admin';
-import { firestore } from './firebase.module';
+import { getFirestore } from './firebase.module';
 import { toFirestoreData } from './to-firestore';
 
 type Ctor<T> = new (...args: any[]) => T;
@@ -19,7 +19,7 @@ export abstract class BaseFirestoreRepository<T extends { id: string }> {
     collection: string,
     private readonly entity: Ctor<T>,
   ) {
-    this.db = firestore.collection(collection);
+    this.db = getFirestore().collection(collection);
   }
 
   async create(item: T): Promise<void> {
