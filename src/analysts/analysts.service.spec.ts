@@ -5,7 +5,7 @@ import { Roles } from '../enums/role.enum';
 
 /**
  * Cobre o CRUD de Analistas e, principalmente, as duas regras que protegem
- * dados: /analysts/:id não pode alcançar uma Maestra, e a supervisão devolve
+ * dados: /analysts/:id não pode alcançar um usuário, e a supervisão devolve
  * apenas nome e status da carteira.
  */
 function makeAnalyst(fullName: string, isActive = true, id = fullName): User {
@@ -14,8 +14,8 @@ function makeAnalyst(fullName: string, isActive = true, id = fullName): User {
   return analyst;
 }
 
-function makeMaestra(fullName: string, createdBy?: string, isActive = true) {
-  const maestra = new User(
+function makeOwnedUser(fullName: string, createdBy?: string, isActive = true) {
+  const owned = new User(
     {
       fullName,
       birthDate: '2000-01-01',
@@ -26,8 +26,8 @@ function makeMaestra(fullName: string, createdBy?: string, isActive = true) {
     fullName,
     [Roles.USER],
   );
-  maestra.isActive = isActive;
-  return maestra;
+  owned.isActive = isActive;
+  return owned;
 }
 
 describe('AnalystsService', () => {
@@ -39,9 +39,9 @@ describe('AnalystsService', () => {
     create: jest.Mock;
   };
   let auth: {
-    create: jest.Mock;
-    setTempPassword: jest.Mock;
-    findCredentialsById: jest.Mock;
+    createAccount: jest.Mock;
+    removeAccount: jest.Mock;
+    findAccount: jest.Mock;
   };
 
   beforeEach(() => {
@@ -52,30 +52,36 @@ describe('AnalystsService', () => {
       create: jest.fn(),
     };
     auth = {
-      create: jest.fn().mockResolvedValue({ id: 'auth-1' }),
-      setTempPassword: jest.fn().mockResolvedValue(undefined),
-      findCredentialsById: jest.fn().mockResolvedValue(null),
+      createAccount: jest.fn().mockResolvedValue({ id: 'uid-bia' }),
+      removeAccount: jest.fn().mockResolvedValue(undefined),
+      findAccount: jest.fn().mockResolvedValue(null),
     };
     service = new AnalystsService(repo as any, auth as any);
   });
 
-  describe('create', () => {
-    it('cria o acesso com a role ANALYST e persiste o perfil com o id do auth', async () => {
-      await service.create({
-        fullName: 'Bia',
-        login: { email: 'bia@dna.com', password: 'x' },
-      });
+  describe('create (convite: conta no Firebase sem senha)', () => {
+    it('cria a conta com a role ANALYST e persiste o perfil com o uid', async () => {
+      await expect(
+        service.create({ fullName: 'Bia', email: 'bia@dna.com' }),
+      ).resolves.toMatchObject({ id: 'uid-bia' });
 
-      expect(auth.create).toHaveBeenCalledWith(
-        { email: 'bia@dna.com', password: 'x' },
-        [Roles.ANALYST],
-      );
+      expect(auth.createAccount).toHaveBeenCalledWith('bia@dna.com', [
+        Roles.ANALYST,
+      ]);
       const persisted = repo.create.mock.calls[0][0] as User;
-      expect(persisted.id).toBe('auth-1');
+      expect(persisted.id).toBe('uid-bia');
       expect(persisted.roles).toEqual([Roles.ANALYST]);
       expect(persisted.email).toBe('bia@dna.com');
       expect(persisted.isActive).toBe(true);
       expect(persisted.birthDate).toBeUndefined();
+    });
+
+    it('falha ao gravar o perfil: desfaz a conta no Firebase', async () => {
+      repo.create.mockRejectedValue(new Error('firestore fora'));
+      await expect(
+        service.create({ fullName: 'Bia', email: 'bia@dna.com' }),
+      ).rejects.toThrow('firestore fora');
+      expect(auth.removeAccount).toHaveBeenCalledWith('uid-bia');
     });
   });
 
@@ -116,8 +122,8 @@ describe('AnalystsService', () => {
   });
 
   describe('findOne', () => {
-    it('404 quando o documento existe mas não é um Analista (é uma Maestra)', async () => {
-      repo.findById.mockResolvedValue(makeMaestra('Cliente'));
+    it('404 quando o documento existe mas não é um Analista (é um usuário)', async () => {
+      repo.findById.mockResolvedValue(makeOwnedUser('Cliente'));
 
       await expect(service.findOne('Cliente')).rejects.toBeInstanceOf(
         NotFoundException,
@@ -154,8 +160,8 @@ describe('AnalystsService', () => {
       expect(analyst.isActive).toBe(true);
     });
 
-    it('não desativa uma Maestra pela rota de Analista', async () => {
-      repo.findById.mockResolvedValue(makeMaestra('Cliente'));
+    it('não desativa um usuário pela rota de Analista', async () => {
+      repo.findById.mockResolvedValue(makeOwnedUser('Cliente'));
       await expect(service.disable('Cliente')).rejects.toBeInstanceOf(
         NotFoundException,
       );
@@ -163,31 +169,31 @@ describe('AnalystsService', () => {
     });
   });
 
-  describe('findLinkedMaestras (supervisão)', () => {
+  describe('findLinkedUsers (supervisão)', () => {
     beforeEach(() => {
       repo.findById.mockResolvedValue(makeAnalyst('Bia', true, 'analyst-1'));
       repo.findAllWithRole.mockImplementation((role: string) =>
         Promise.resolve(
           role === Roles.USER
             ? [
-                makeMaestra('Carla', 'analyst-1'),
-                makeMaestra('Ana', 'analyst-1', false),
-                makeMaestra('Duda', 'analyst-2'),
-                makeMaestra('Eva', undefined),
+                makeOwnedUser('Carla', 'analyst-1'),
+                makeOwnedUser('Ana', 'analyst-1', false),
+                makeOwnedUser('Duda', 'analyst-2'),
+                makeOwnedUser('Eva', undefined),
               ]
             : [],
         ),
       );
     });
 
-    it('devolve só as Maestras do analista, ordenadas por nome', async () => {
-      const linked = await service.findLinkedMaestras('analyst-1');
+    it('devolve só os usuários do analista, ordenados por nome', async () => {
+      const linked = await service.findLinkedUsers('analyst-1');
 
       expect(linked.map((m) => m.fullName)).toEqual(['Ana', 'Carla']);
     });
 
     it('expõe apenas nome e status — nunca dados pessoais nem id', async () => {
-      const linked = await service.findLinkedMaestras('analyst-1');
+      const linked = await service.findLinkedUsers('analyst-1');
 
       expect(Object.keys(linked[0]).sort()).toEqual(['fullName', 'isActive']);
       expect(linked[0]).toEqual({ fullName: 'Ana', isActive: false });
@@ -195,55 +201,33 @@ describe('AnalystsService', () => {
 
     it('404 quando o analista não existe', async () => {
       repo.findById.mockResolvedValue(null);
-      await expect(
-        service.findLinkedMaestras('fantasma'),
-      ).rejects.toBeInstanceOf(NotFoundException);
+      await expect(service.findLinkedUsers('fantasma')).rejects.toBeInstanceOf(
+        NotFoundException,
+      );
     });
   });
 
-  describe('senha temporária (spec 005)', () => {
-    it('o detalhe traz e-mail e o estado da senha, lidos do auth', async () => {
+  describe('status do acesso no detalhe (spec 010)', () => {
+    it('o detalhe traz o e-mail e o status do acesso lidos do Firebase', async () => {
       repo.findById.mockResolvedValue(makeAnalyst('Ana', true, 'a1'));
-      auth.findCredentialsById.mockResolvedValue({
+      auth.findAccount.mockResolvedValue({
         email: 'ana@dna.com',
-        mustChangePassword: true,
-        tempPassword: 'provisoria',
+        accessStatus: 'active',
       });
 
       const view = await service.findOneView('a1');
 
       expect(view.email).toBe('ana@dna.com');
-      expect(view.mustChangePassword).toBe(true);
-      expect(view.tempPassword).toBe('provisoria');
+      expect(view.accessStatus).toBe('active');
+      expect(view).not.toHaveProperty('tempPassword');
     });
 
-    it('a listagem NÃO carrega a senha em texto plano', async () => {
+    it('a listagem não consulta o Firebase', async () => {
       repo.findAllWithRole.mockResolvedValue([makeAnalyst('Ana')]);
 
-      const { items } = await service.findAll({
-        orderBy: 'fullName',
-        direction: 'asc',
-      });
+      await service.findAll({ orderBy: 'fullName', direction: 'asc' });
 
-      expect(items[0]).not.toHaveProperty('tempPassword');
-      expect(auth.findCredentialsById).not.toHaveBeenCalled();
-    });
-
-    it('redefine a senha do analista', async () => {
-      repo.findById.mockResolvedValue(makeAnalyst('Ana', true, 'a1'));
-
-      await service.setTempPassword('a1', 'nova123');
-
-      expect(auth.setTempPassword).toHaveBeenCalledWith('a1', 'nova123');
-    });
-
-    it('não redefine a senha de quem não é analista (404)', async () => {
-      repo.findById.mockResolvedValue(makeMaestra('Bruna'));
-
-      await expect(
-        service.setTempPassword('Bruna', 'invadida'),
-      ).rejects.toBeInstanceOf(NotFoundException);
-      expect(auth.setTempPassword).not.toHaveBeenCalled();
+      expect(auth.findAccount).not.toHaveBeenCalled();
     });
   });
 });

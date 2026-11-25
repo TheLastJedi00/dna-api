@@ -10,11 +10,13 @@ no **Cloud Run**.
 - **MVC simples:** `Controller → Service → Repository` (ver `.specs/global-strategy.md`).
 - **Repositórios de pilar** herdam de `BaseFirestoreRepository<T>` (CRUD Firestore
   centralizado); os serviços de pilar herdam de `PillarService` (regra comum).
-- **Auth:** JWT com par **access token curto** + **refresh token** (segredo próprio).
-  `AuthGuard` valida e popula `request.auth`; `RoleGuard` reaproveita esse payload;
-  `OwnershipGuard` garante que um usuário só acesse os próprios dados (`:userId`).
-- **Redis (opcional):** cache de leituras caras (supply/dna-status/prompts),
-  rate-limit distribuído (throttler) e allowlist/rotação de refresh tokens.
+- **Auth:** **Firebase Auth**. O front entra pelo SDK web e manda o **ID token**; o
+  `AuthGuard` o valida com o Admin SDK (`verifyIdToken`, checando revogação) e popula
+  `request.auth`; `RoleGuard` reaproveita esse payload (roles vêm de uma **custom
+  claim**); `OwnershipGuard` garante que um usuário só acesse os próprios dados
+  (`:userId`). Todo acesso ao Firebase Auth passa pelo `FirebaseAuthAdapter`.
+- **Redis (opcional):** cache de leituras caras (supply/dna-status/prompts) e
+  rate-limit distribuído (throttler).
   **Sem `REDIS_URL` a API roda em modo degradado** (funciona, sem esses recursos).
 
 ## Setup
@@ -38,89 +40,98 @@ Veja `.env.example`. Destaques:
 
 | Var | Obrigatória | Descrição |
 |-----|-------------|-----------|
-| `FIREBASE_SERVICE_ACCOUNT_JSON` | sim | Service account (JSON em base64) |
-| `JWT_SECRET` | sim | Segredo do access token |
-| `JWT_REFRESH_SECRET` | sim | Segredo do refresh token |
-| `JWT_ACCESS_EXPIRES` | não (15m) | Expiração do access token |
-| `JWT_REFRESH_EXPIRES` | não (7d) | Expiração do refresh token |
+| `FIREBASE_SERVICE_ACCOUNT_JSON` | sim | Service account (JSON em base64). Serve ao Firestore **e** ao Firebase Auth |
 | `GEMINI_API_KEY` | sim | Chave da API do Gemini |
 | `GEMINI_MODEL` | não | Modelo do Gemini |
-| `REDIS_URL` | não | Habilita cache/rate-limit/allowlist de refresh |
+| `REDIS_URL` | não | Habilita cache e rate-limit distribuído |
 | `ALLOWED_ORIGINS` | não | Origens permitidas no CORS (separar por vírgula) |
 | `PORT` | não (8080) | Porta HTTP |
 
-## Autenticação
+## Autenticação (Firebase Auth)
 
-- `POST /auth` — login por credenciais → `{ access_token, refresh_token, mustChangePassword }`.
-- `POST /auth/refresh` — renova o par a partir do refresh (rotação; nega se revogado).
-- `POST /auth/logout` — revoga o refresh informado.
-- `POST /auth/change-password` — o próprio usuário define a senha definitiva. O id sai
-  **do token**, nunca do corpo. Devolve um **par de tokens novo**.
+Desde a spec 010 a API **não tem login, refresh nem logout próprios**: a sessão é do
+Firebase. O front faz `signInWithEmailAndPassword` com o SDK web e envia
+`Authorization: Bearer <ID token>`.
 
-## Senha temporária (primeiro acesso e recuperação)
+- **`request.auth`**: `{ id (uid), email, roles (custom claim), emailVerified, authTime }`.
+- **E-mail confirmado é obrigatório.** Quem não confirmou recebe **403**
+  `{ code: 'EMAIL_NOT_VERIFIED', message: 'Verifique seu e-mail para continuar.' }` em
+  qualquer rota, exceto as marcadas com `@AllowUnverified()`: `GET /users/me/:id` e
+  `DELETE /users/me`. A regra mora no próprio `AuthGuard` (nenhuma rota autenticada a
+  esquece).
+- **Roles** são a custom claim `roles`, gravada pela API ao criar a conta (e pela
+  migração). `users.roles` é cópia para listagem; toda mudança de role atualiza os dois.
 
-A senha definida no cadastro (`POST /users/maestra`, `POST /analysts`) **já nasce
-provisória**: vale para o login, mas o usuário é obrigado a trocá-la no primeiro acesso.
-Até lá ela fica visível, em texto plano, para quem o cadastrou.
+### Cadastro por convite
 
-O estado mora no doc `auth`:
+`POST /users` e `POST /analysts` recebem **só o e-mail** (sem senha). A API cria a conta
+no Firebase **sem senha** e com e-mail não verificado, grava a claim `roles` e o perfil
+em `users` com `id = uid`. Se a claim ou o perfil falharem, a conta é desfeita. O front
+dispara em seguida o e-mail "Defina sua senha" (link de redefinição do Firebase). E-mail
+já existente → **409** `Email já cadastrado.`
 
-| Campo | Descrição |
-|-------|-----------|
-| `mustChangePassword` | `true` enquanto a senha em uso for provisória |
-| `tempPassword` | a senha provisória **em texto plano**; `null` após a troca ou o vencimento |
-| `tempPasswordExpiresAt` | até quando ela vale (ISO 8601) — **72h** a partir da geração |
+O detalhe (`GET /users/:id`, `GET /analysts/:id`) traz `accessStatus`:
 
-### Prazo de 72h
+| Valor | Quando |
+|-------|--------|
+| `invite_pending` | Nunca entrou (ainda não definiu a senha) |
+| `email_unverified` | Já entrou, mas não confirmou o e-mail |
+| `active` | E-mail confirmado |
+| `null` | O perfil não tem conta no Firebase |
 
-A senha provisória **vence em 3 dias**. Depois disso ela **deixa de logar** (mesmo estando
-correta: o prazo é checado antes da comparação) e o texto plano é apagado do banco na
-tentativa de login — limpeza preguiçosa, sem depender de agendador. Quem não entrou a tempo
-fica sem acesso até o gestor gerar outra senha; no painel, a senha vencida some do detalhe e
-o botão "Gerar senha temporária" volta a aparecer.
+A senha provisória da spec 005 (`tempPassword`, `mustChangePassword`,
+`/temp-password`) **não existe mais**: a recuperação de acesso é o "Esqueci minha senha"
+do Firebase.
 
-Sem o prazo, a senha de quem nunca fez o primeiro acesso ficaria em claro no banco para
-sempre. Registros anteriores a este campo (sem `tempPasswordExpiresAt`) não expiram.
+### Meu perfil e exclusão da conta (LGPD)
 
-- `PATCH /users/:id/temp-password` (`ADMIN`/`MANAGER`/`ANALYST`, **com posse**) e
-  `PATCH /analysts/:id/temp-password` (`ADMIN`/`MANAGER`) — o gestor digita uma senha
-  provisória para devolver o acesso a quem o perdeu.
-- `POST /auth/change-password` — o usuário define a definitiva: apaga o `tempPassword`,
-  zera a flag e recebe tokens novos.
+- `GET /users/me/:id` — perfil. Se o e-mail do token for diferente da cópia em
+  `users.email` (a pessoa trocou o e-mail pelo Firebase), a cópia é atualizada.
+- `DELETE /users/me` — **exclui a própria conta** (id só do token; **204**). Exige login
+  recente: `auth_time` de no máximo **5 minutos** (o front pede a senha antes), senão
+  **401** `Confirme sua senha para excluir a conta.` Apaga os documentos dos pilares e de
+  `supplies` (inclui o Plano Perfeito), o perfil, o doc legado em `auth`, o cache e, **por
+  último**, a conta no Firebase Auth. Idempotente; limite de 5 chamadas por minuto.
+  Usuários cadastrados por quem se excluiu continuam, com `createdByName: null`.
 
-**`mustChangePassword` é claim do JWT**, não só um campo da resposta do login: é isso que
-faz o bloqueio da troca obrigatória sobreviver a um reload ou a uma URL digitada à mão. O
-`refresh` preserva o claim (renovar o token não é rota de fuga) e a troca **reemite** o par
-— senão o access token em mãos continuaria carregando o claim antigo.
+Alterar senha e alterar e-mail são feitos pelo SDK web, direto no Firebase (sem API).
 
-> ⚠️ **`tempPassword` é credencial em texto plano.** Ela existe porque a spec exige que o
-> gestor consiga repassar a senha. Por isso: sai **apenas** no endpoint de detalhe
-> (`GET /users/:id`, `GET /analysts/:id`) e só para quem tem posse do usuário — **nunca**
-> no login, no `/users/me` ou em qualquer listagem — e é apagada no instante em que a
-> senha definitiva é definida.
+### Migração das contas antigas
+
+As credenciais da coleção legada `auth` (bcrypt) são levadas para o Firebase Auth com o
+**mesmo id e a mesma senha**, todas com e-mail não verificado:
+
+```bash
+npx ts-node scripts/migrate-auth-to-firebase.ts --dry-run --key <service-account.json>
+npx ts-node scripts/migrate-auth-to-firebase.ts --key <service-account.json>
+```
+
+Sem `--key`, usa `FIREBASE_SERVICE_ACCOUNT_JSON`. Idempotente (pula quem já existe),
+relatório só com uids e contagens, e **não apaga** a coleção `auth` (backup até a
+release ser validada). Senha provisória vencida é importada sem senha.
 
 ## Papéis e visibilidade (RBAC)
 
 | Role | Pode |
 |------|------|
-| `ADMIN` | Super-usuário: tudo, incluindo **todas** as Maestras (mesmo as sem vínculo) |
-| `MANAGER` | Gerencia **Analistas** + as Maestras **que ele mesmo cadastrou** |
-| `ANALYST` | Gerencia apenas as Maestras **que ele mesmo cadastrou**. Sem acesso a `/analysts` |
-| `USER` | A Maestra (cliente): acessa apenas os próprios dados |
+| `ADMIN` | Super-usuário: tudo, incluindo **todos** os usuários (mesmo os sem vínculo) |
+| `MANAGER` | Gerencia **Analistas** + os usuários **que ele mesmo cadastrou** |
+| `ANALYST` | Gerencia apenas os usuários **que ele mesmo cadastrou**. Sem acesso a `/analysts` |
+| `USER` | O usuário (cliente): acessa apenas os próprios dados |
 
-Toda Maestra guarda `createdBy` = id de quem a cadastrou (vem **do token**, nunca do
+Todo usuário guarda `createdBy` = id de quem o cadastrou (vem **do token**, nunca do
 corpo). Esse vínculo governa a listagem **e** o acesso direto: `GET`/`PATCH`/`DELETE`
-`/users/:id` devolvem **403** se a Maestra não for do requisitante (exceto `ADMIN`).
+`/users/:id` devolvem **403** se o usuário não for do requisitante (exceto `ADMIN`).
 
-## Maestras (CRUD)
+## Usuários (CRUD)
 
-Gestão das Maestras (role `USER`). Desativação é **soft delete** (`isActive`),
-permitindo reativar.
+Gestão dos usuários (role `USER`, os clientes). Desativação é **soft delete**
+(`isActive`), permitindo reativar.
 
-- `POST /users/maestra` — cria uma Maestra e a vincula ao requisitante
-  (`ADMIN`/`MANAGER`/`ANALYST`). Além dos dados natais aceita dois campos
+- `POST /users` — cria um usuário por convite (só `email`, sem senha) e o vincula ao
+  requisitante (`ADMIN`/`MANAGER`/`ANALYST`). Além dos dados natais aceita dois campos
   opcionais: `businessArea` (ramo de atuação, texto livre) e `pronoun`
-  (`masculino` \| `feminino`, default `feminino`).
+  (`masculino` \| `feminino`, default `feminino`). Devolve `{ id }`.
 - `GET /users/active/:orderBy/:direction` — lista **paginada** com busca e filtro,
   já restrita à visibilidade do requisitante.
   Query params:
@@ -134,15 +145,15 @@ permitindo reativar.
   O corpo é o **array de itens** da página; os metadados vão nos headers
   `X-Total-Count`, `X-Page`, `X-Page-Size`, `X-Total-Pages` (expostos no CORS).
   Cada item traz `createdBy` e `createdByName` (nome de quem cadastrou; cai para o
-  e-mail de acesso quando o criador não tem perfil, caso do Manager).
-- `GET /users/:id` — detalhe, com `createdByName` e as credenciais (`email`,
-  `mustChangePassword`, `tempPassword`). É o **único** lugar onde a senha provisória sai.
+  e-mail do Firebase quando o criador não tem perfil, caso do Manager; `null` se o
+  criador excluiu a conta).
+- `GET /users/:id` — detalhe, com `createdByName`, `email` e `accessStatus`.
 - `PATCH /users/:id` — edita o perfil (`fullName`, `birthDate`, `birthTime`,
   `birthPlace`, `businessArea`, `pronoun`).
 
 O `pronoun` e o `businessArea` entram no `toUserDataPrompt()` da entidade `User`,
 de onde alcançam **todas** as gerações de conteúdo: o prompt instrui o modelo a
-tratar a Maestra no gênero escolhido e a considerar o ramo de atuação. Os
+tratar o usuário no gênero escolhido e a considerar o ramo de atuação. Os
 templates no Firestore continuam genéricos — não precisam ser alterados.
 Cadastros anteriores não têm os campos e assumem `pronoun: 'feminino'`, que é o
 comportamento que o sistema já tinha.
@@ -152,20 +163,18 @@ comportamento que o sistema já tinha.
 ## Analistas (CRUD + supervisão)
 
 Analistas são perfis da **mesma coleção `users`**, com `roles: ['ANALYST']` (doc
-chaveado pelo id do `auth`, igual à Maestra) — não têm mapa natal. Todas as rotas
-abaixo são exclusivas de **`ADMIN`/`MANAGER`**; o Analista não alcança nenhuma delas.
+chaveado pelo uid do Firebase Auth, igual ao usuário) — não têm mapa natal. Todas as
+rotas abaixo são exclusivas de **`ADMIN`/`MANAGER`**; o Analista não alcança nenhuma delas.
 
-- `POST /analysts` — cria (`fullName` + `login: { email, password }`).
+- `POST /analysts` — cria por convite (`fullName` + `email`, sem senha).
 - `GET /analysts` — lista **paginada** (mesmos `page`/`pageSize`/`name`/`status` e
-  headers `X-*` da listagem de Maestras).
-- `GET /analysts/:id` — detalhe, com as credenciais (`email`, `mustChangePassword`,
-  `tempPassword`). Devolve **404** se o id for de uma Maestra — a rota não é atalho para
-  dados de cliente.
-- `PATCH /analysts/:id/temp-password` — gera a senha provisória do Analista.
+  headers `X-*` da listagem de usuários).
+- `GET /analysts/:id` — detalhe, com `email` e `accessStatus`. Devolve **404** se o id
+  for de um usuário cliente — a rota não é atalho para dados de cliente.
 - `PATCH /analysts/:id` — edita o nome.
 - `PATCH /analysts/:id/reactivate` — reativa.
 - `DELETE /analysts/:id` — desativa (soft delete).
-- `GET /analysts/:id/maestras` — **supervisão**: a carteira do Analista em DTO
+- `GET /analysts/:id/users` — **supervisão**: a carteira do Analista em DTO
   reduzido — apenas `fullName` e `isActive`. Sem `id` e sem dados natais, de modo que
   o Manager acompanha a carteira sem acessar os dados pessoais da cliente.
 
@@ -207,4 +216,5 @@ npm run start:dev     # dev com watch
 npm run build         # build de produção (nest build)
 npm run start:prod    # roda dist/main
 npm test              # testes (jest)
+npx ts-node scripts/migrate-auth-to-firebase.ts --dry-run --key <json>  # migração (spec 010)
 ```

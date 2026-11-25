@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { firestore } from '../firebase/firebase.module';
+import { getFirestore } from '../firebase/firebase.module';
 import { toFirestoreData } from '../firebase/to-firestore';
 import { User } from './entities/user.entity';
 import { plainToInstance } from 'class-transformer';
@@ -10,7 +10,7 @@ import { CreateUserDto } from './dto/create-user.dto';
 export class UsersRepository {
   private readonly db: admin.firestore.CollectionReference;
   constructor() {
-    this.db = firestore.collection('users');
+    this.db = getFirestore().collection('users');
   }
 
   async create(user: User) {
@@ -45,7 +45,7 @@ export class UsersRepository {
   }
 
   /**
-   * Devolve todos os perfis com a role informada (Maestras = USER, Analistas =
+   * Devolve todos os perfis com a role informada (usuários = USER, Analistas =
    * ANALYST) como entidades completas. Consulta apenas por `roles
    * array-contains <role>` (índice de array automático do Firestore);
    * status/busca/ordenação/paginação ficam no service (em memória), evitando

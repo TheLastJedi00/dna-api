@@ -3,8 +3,8 @@ import { PRONOUNS } from '../pronoun';
 import type { Pronoun } from '../pronoun';
 
 /**
- * Edição de Maestra: apenas os campos de perfil. `login`/`roles` não são
- * editáveis por aqui (fonte de verdade de autorização é o documento `auth`).
+ * Edição de usuário: apenas os campos de perfil. E-mail e `roles` não são
+ * editáveis por aqui (fonte de verdade de autorização é o Firebase Auth).
  * `ValidationPipe` global com `whitelist` descarta qualquer campo fora destes.
  */
 export class UpdateUserDto {
