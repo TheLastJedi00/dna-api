@@ -9,33 +9,38 @@ import {
   Res,
   Delete,
   UseGuards,
+  HttpCode,
+  HttpStatus,
 } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import type { Response } from 'express';
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { ListUsersQueryDto } from './dto/list-users-query.dto';
-import { TempPasswordDto } from '../auth/dto/temp-password.dto';
 import { AuthGuard } from '../auth/guards/auth.guard';
 import { RoleGuard } from '../auth/guards/role.guard';
 import { Role } from '../decorators/role.decorator';
 import { Roles } from '../enums/role.enum';
 import { Ownership } from '../decorators/ownership.decorator';
+import { AllowUnverified } from '../decorators/allow-unverified.decorator';
+import { AccountDeletionService } from '../account/account-deletion.service';
+import type { RequestAuth } from '../auth/entities/request-auth';
 
 @Controller('users')
 @UseGuards(AuthGuard, RoleGuard)
 export class UsersController {
-  constructor(private readonly usersService: UsersService) {}
+  constructor(
+    private readonly usersService: UsersService,
+    private readonly accountDeletion: AccountDeletionService,
+  ) {}
 
-  // O vínculo da Maestra com o criador sai do token (não do corpo): quem
+  // O vínculo do usuário com o criador sai do token (não do corpo): quem
   // cadastra é sempre o usuário logado, seja Analista ou Manager.
-  @Post('maestra')
+  @Post()
   @Role(Roles.ADMIN, Roles.MANAGER, Roles.ANALYST)
-  createMaestra(
-    @Body() data: CreateUserDto,
-    @Ownership('id') creatorId: string,
-  ) {
-    return this.usersService.createMaestra(data, creatorId);
+  createUser(@Body() data: CreateUserDto, @Ownership('id') creatorId: string) {
+    return this.usersService.createUser(data, creatorId);
   }
 
   // Paginação/busca/status vêm por query string (?page&pageSize&name&status);
@@ -66,21 +71,26 @@ export class UsersController {
     return items;
   }
 
+  // Aberta para quem ainda não confirmou o e-mail: o popup de verificação e o
+  // Meu Perfil precisam do nome da pessoa (spec 010).
   @Get('me/:id')
+  @AllowUnverified()
   async findMe(
     @Ownership('id') idFromToken: string,
     @Ownership('roles') rolesFromToken: string[],
+    @Ownership('email') emailFromToken: string,
     @Param('id') idFromUrl: string,
   ) {
     return await this.usersService.findMe(
       idFromToken,
       rolesFromToken,
       idFromUrl,
+      emailFromToken,
     );
   }
 
-  // Rotas de gestão da Maestra: a role sozinha não basta — o service ainda
-  // valida a posse (createdBy), senão um Analista alcançaria a Maestra de
+  // Rotas de gestão do usuário: a role sozinha não basta — o service ainda
+  // valida a posse (createdBy), senão um Analista alcançaria o usuário de
   // outro pelo id. ADMIN segue como super-usuário.
   @Get(':id')
   @Role(Roles.ADMIN, Roles.MANAGER, Roles.ANALYST)
@@ -95,6 +105,17 @@ export class UsersController {
     });
   }
 
+  // LGPD (spec 010): a própria pessoa exclui a conta. O id sai só do token.
+  // Declarada antes de DELETE /users/:id — senão "me" seria lido como id.
+  // Rate-limit próprio, mais restrito que o global.
+  @Delete('me')
+  @AllowUnverified()
+  @Throttle({ default: { limit: 5, ttl: 60_000 } })
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async deleteMe(@Ownership() requester: RequestAuth) {
+    await this.accountDeletion.deleteOwnAccount(requester);
+  }
+
   @Delete(':id')
   @Role(Roles.ADMIN, Roles.MANAGER, Roles.ANALYST)
   async disableUser(
@@ -103,21 +124,6 @@ export class UsersController {
     @Ownership('roles') requesterRoles: string[],
   ) {
     return await this.usersService.disable(userId, {
-      id: requesterId,
-      roles: requesterRoles,
-    });
-  }
-
-  // Gera a senha provisória da Maestra (recuperação de acesso pelo painel).
-  @Patch(':id/temp-password')
-  @Role(Roles.ADMIN, Roles.MANAGER, Roles.ANALYST)
-  async setTempPassword(
-    @Param('id') userId: string,
-    @Body() { password }: TempPasswordDto,
-    @Ownership('id') requesterId: string,
-    @Ownership('roles') requesterRoles: string[],
-  ) {
-    await this.usersService.setTempPassword(userId, password, {
       id: requesterId,
       roles: requesterRoles,
     });
