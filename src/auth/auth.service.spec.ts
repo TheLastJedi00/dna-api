@@ -77,34 +77,40 @@ describe('AuthService — contas no Firebase Auth', () => {
   });
 
   describe('findAccount (status do acesso)', () => {
-    const record = (emailVerified: boolean, lastSignInTime: string | null) => ({
+    const record = (emailVerified: boolean, hasPassword: boolean) => ({
       uid: 'uid-1',
       email: 'ana@dna.com',
       emailVerified,
-      metadata: { lastSignInTime },
+      providerData: hasPassword ? [{ providerId: 'password' }] : [],
     });
 
-    it('nunca entrou e e-mail não verificado → convite pendente', async () => {
-      firebaseAuth.getUser.mockResolvedValue(record(false, null));
+    it('sem senha (convite ainda não aberto) → convite pendente', async () => {
+      firebaseAuth.getUser.mockResolvedValue(record(false, false));
       await expect(service.findAccount('uid-1')).resolves.toEqual({
         email: 'ana@dna.com',
         accessStatus: 'invite_pending',
       });
     });
 
-    it('já entrou mas não confirmou o e-mail → e-mail não verificado', async () => {
-      firebaseAuth.getUser.mockResolvedValue(
-        record(false, 'Mon, 23 Nov 2026 10:00:00 GMT'),
-      );
+    it('com senha e e-mail não confirmado → e-mail não verificado', async () => {
+      firebaseAuth.getUser.mockResolvedValue(record(false, true));
+      await expect(service.findAccount('uid-1')).resolves.toMatchObject({
+        accessStatus: 'email_unverified',
+      });
+    });
+
+    it('conta migrada com senha que nunca entrou → e-mail não verificado, não convite', async () => {
+      firebaseAuth.getUser.mockResolvedValue({
+        ...record(false, true),
+        metadata: { lastSignInTime: null },
+      });
       await expect(service.findAccount('uid-1')).resolves.toMatchObject({
         accessStatus: 'email_unverified',
       });
     });
 
     it('e-mail confirmado → ativo', async () => {
-      firebaseAuth.getUser.mockResolvedValue(
-        record(true, 'Mon, 23 Nov 2026 10:00:00 GMT'),
-      );
+      firebaseAuth.getUser.mockResolvedValue(record(true, true));
       await expect(service.findAccount('uid-1')).resolves.toMatchObject({
         accessStatus: 'active',
       });
