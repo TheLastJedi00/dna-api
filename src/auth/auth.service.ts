@@ -10,8 +10,8 @@ function firebaseErrorCode(e: unknown): string | undefined {
 
 /**
  * Situação do acesso de uma conta, para o gestor (spec 010):
- * - `invite_pending`: nunca entrou (ainda não definiu a senha pelo convite)
- * - `email_unverified`: já entrou, mas não confirmou o e-mail
+ * - `invite_pending`: sem senha (ainda não abriu o convite)
+ * - `email_unverified`: tem senha, mas não confirmou o e-mail
  * - `active`: e-mail confirmado
  */
 export type AccessStatus = 'invite_pending' | 'email_unverified' | 'active';
@@ -76,11 +76,14 @@ export class AuthService {
       }
       throw e;
     }
+    // "Ter senha" (provedor `password` vinculado), e não "já ter entrado":
+    // contas migradas trazem a senha antiga e nunca entraram pelo Firebase.
+    const hasPassword = record.providerData.some(
+      (p) => p.providerId === 'password',
+    );
     let accessStatus: AccessStatus = 'active';
     if (!record.emailVerified) {
-      accessStatus = record.metadata.lastSignInTime
-        ? 'email_unverified'
-        : 'invite_pending';
+      accessStatus = hasPassword ? 'email_unverified' : 'invite_pending';
     }
     return { email: record.email ?? null, accessStatus };
   }
